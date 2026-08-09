@@ -1,6 +1,4 @@
-# Yiri
-
-# Yiri — App de suivi
+# L'Homme Complet — App de suivi
 
 Projet portfolio : suivi du programme hebdomadaire holistique (sommeil, sport, tech,
 anglais, lecture, expression, business dev GreenGrow, portfolio, méditation, sujet libre),
@@ -26,11 +24,3 @@ avec déverrouillage progressif par semaine (RG-04) et notifications configurabl
    reprenant la logique du tracker HTML déjà livré (déverrouillage, horizon de progression)
    mais branchée sur l'API réelle.
 3. Cadrer l'app mobile (React Native ou natif) une fois le web stable.
-
->>>>>>> 3534bd7 (Version beta pour test)
->>>>>>>
->>>>>>
->>>>>
->>>>
->>>
->>
