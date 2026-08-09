@@ -1,7 +1,5 @@
 # Yiri
 
-=======
-
 # Yiri — App de suivi
 
 Projet portfolio : suivi du programme hebdomadaire holistique (sommeil, sport, tech,
