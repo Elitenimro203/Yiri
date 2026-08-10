@@ -123,7 +123,7 @@ export default function DashboardPage() {
     <div style={styles.app}>
       <Sidebar />
 
-      <main style={styles.main}>
+      <main className="page-main" style={styles.main}>
         <header style={styles.topbar}>
           <div>
             <p style={styles.dateLabel}>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
 
         {programme && (
           <>
-            <section style={styles.hero}>
+            <section className="hero-grid" style={styles.hero}>
               <GrowthCard
                 lifetimeCoches={lifetimeCoches}
                 cocheesSemaine={cocheesSemaine}
@@ -178,7 +178,7 @@ export default function DashboardPage() {
             </div>
             <WeekTimeline axesDeverrouilles={axesDeverrouilles} entrees={entreesSemaine} jourIndexAujourdhui={jourIdx} />
 
-            <div style={styles.bottom}>
+            <div className="bottom-grid-2col" style={styles.bottom}>
               <MantraCard />
               <ModeSwitch mode={programme.mode_deverrouillage} onChange={handleModeChange} enCours={modeEnCours} />
             </div>

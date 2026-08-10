@@ -80,7 +80,7 @@ export default function RevuePage() {
   return (
     <div style={styles.app}>
       <Sidebar />
-      <main style={styles.main}>
+      <main className="page-main" style={styles.main}>
         <p style={styles.eyebrow}>Clôture hebdomadaire</p>
         <h1 style={styles.h1}>Revue</h1>
         <p style={styles.subtitle}>Un instant honnête avant de passer à la suite.</p>

@@ -87,7 +87,7 @@ export default function RappelsPage() {
   return (
     <div style={styles.app}>
       <Sidebar />
-      <main style={styles.main}>
+      <main className="page-main" style={styles.main}>
         <p style={styles.eyebrow}>Nourrir même quand tu n'y penses pas</p>
         <h1 style={styles.h1}>Rappels</h1>
         <p style={styles.subtitle}>Des notifications sur ton téléphone, aux heures que tu choisis.</p>

@@ -22,8 +22,8 @@ export default function Sidebar() {
     .toUpperCase();
 
   return (
-    <aside style={styles.aside}>
-      <div style={styles.brand}>
+    <aside className="app-sidebar" style={styles.aside}>
+      <div className="sidebar-brand" style={styles.brand}>
         <div style={styles.seed}>↗</div>
         <div>
           <strong style={styles.brandName}>L'homme complet</strong>
@@ -31,10 +31,11 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav style={styles.nav}>
+      <nav className="sidebar-nav" style={styles.nav}>
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
+            className="sidebar-nav-btn"
             style={{
               ...styles.navBtn,
               ...(item.path === location.pathname ? styles.navBtnActive : {}),
@@ -47,12 +48,12 @@ export default function Sidebar() {
           >
             <span>{item.icon}</span>
             <span>{item.label}</span>
-            {!item.dispo && <span style={styles.soon}>bientôt</span>}
+            {!item.dispo && <span className="sidebar-soon" style={styles.soon}>bientôt</span>}
           </button>
         ))}
       </nav>
 
-      <div style={styles.bottom}>
+      <div className="sidebar-footer" style={styles.bottom}>
         <div style={styles.avatarRow}>
           <div style={styles.avatar}>{initiales}</div>
           <span style={styles.userName}>{utilisateur?.nom}</span>

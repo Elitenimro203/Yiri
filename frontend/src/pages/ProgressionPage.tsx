@@ -118,7 +118,7 @@ export default function ProgressionPage() {
   return (
     <div style={styles.app}>
       <Sidebar />
-      <main style={styles.main}>
+      <main className="page-main" style={styles.main}>
         <p style={styles.eyebrow}>Le temps long</p>
         <h1 style={styles.h1}>Progression</h1>
         <p style={styles.subtitle}>Pas un instantané — une trajectoire, semaine après semaine.</p>

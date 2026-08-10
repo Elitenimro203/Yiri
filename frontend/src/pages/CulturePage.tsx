@@ -76,7 +76,7 @@ export default function CulturePage() {
   return (
     <div style={styles.app}>
       <Sidebar />
-      <main style={styles.main}>
+      <main className="page-main" style={styles.main}>
         <p style={styles.eyebrow}>Les racines</p>
         <h1 style={styles.h1}>Ma culture</h1>
         <p style={styles.subtitle}>Le détail de ce que tu nourris, pilier par pilier.</p>
@@ -86,7 +86,7 @@ export default function CulturePage() {
 
         {!chargement && programme && (
           <>
-            <div style={styles.tabs}>
+            <div className="pillars-tabs-grid" style={styles.tabs}>
               {PILIERS.map((p) => {
                 const info = piliers.find((x) => x.pilier === p);
                 return (
