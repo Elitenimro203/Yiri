@@ -96,5 +96,8 @@ app/
   (configurable via variable d'environnement, voir tableau ci-dessus)
 - ⚠️ `Base.metadata.create_all()` ne migre pas un schéma existant — passer à Alembic dès
   que la base contient des données réelles à préserver
-- La base SQLite par défaut ne convient qu'au développement local — PostgreSQL recommandé
-  dès qu'il y a plusieurs utilisateurs simultanés
+- La base SQLite par défaut convient au développement local. **Sur Railway, ajoute plutôt
+  un service Postgres** (bouton "New" → Database → PostgreSQL dans ton projet Railway) et
+  référence sa `DATABASE_URL` dans les variables du service backend — évite de dépendre
+  d'un Volume et convient mieux à plusieurs utilisateurs simultanés. Testé et fonctionnel
+  avec `psycopg2-binary` (voir `requirements.txt`).
