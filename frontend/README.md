@@ -1,4 +1,4 @@
-# L'Homme Complet — Frontend
+# Yiri — Frontend
 
 React + TypeScript + Vite. Consomme l'API du backend (`/backend`).
 

@@ -1,4 +1,4 @@
-# L'Homme Complet — App de suivi
+# Yiri — App de suivi
 
 Projet portfolio : suivi du programme hebdomadaire holistique (sommeil, sport, tech,
 anglais, lecture, expression, business dev GreenGrow, portfolio, méditation, sujet libre),

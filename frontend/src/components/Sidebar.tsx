@@ -26,7 +26,7 @@ export default function Sidebar() {
       <div className="sidebar-brand" style={styles.brand}>
         <div style={styles.seed}>↗</div>
         <div>
-          <strong style={styles.brandName}>L'homme complet</strong>
+          <strong style={styles.brandName}>Yiri</strong>
           <small style={styles.brandTag}>cultiver · construire · devenir</small>
         </div>
       </div>

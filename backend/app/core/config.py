@@ -16,7 +16,7 @@ load_dotenv()
 
 
 class Settings:
-    DATABASE_URL: str = os.environ.get("DATABASE_URL", "sqlite:///./homme_complet.db")
+    DATABASE_URL: str = os.environ.get("DATABASE_URL", "sqlite:///./yiri.db")
     SECRET_KEY: str = os.environ["SECRET_KEY"]  # pas de défaut : on VEUT crasher au démarrage si absent
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))

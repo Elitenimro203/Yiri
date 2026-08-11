@@ -8,7 +8,7 @@ from app import models  # noqa: F401 — nécessaire pour que Base.metadata voie
 from app.routers import auth, programmes, axes, suivi, notifications, bilans, push
 
 settings = get_settings()
-app = FastAPI(title="L'Homme Complet — API", version="0.1.0")
+app = FastAPI(title="Yiri — API", version="0.1.0")
 
 # Origines configurables via ALLOWED_ORIGINS (voir .env.example) — "*" par
 # défaut pour le dev local, à restreindre à l'URL Vercel réelle en prod.

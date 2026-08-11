@@ -75,7 +75,7 @@ AXES = [
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Seed L'homme complet")
+    parser = argparse.ArgumentParser(description="Seed Yiri — crée compte + programme + axes")
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--email", default=None, help="Si omis, demandé de façon interactive")
     parser.add_argument("--nom", default="Kouadio")

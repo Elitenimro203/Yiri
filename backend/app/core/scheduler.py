@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 def _libelle_notification(notif: Notification) -> tuple[str, str]:
     """(titre, corps) du message envoyé — dépend de si le rappel est lié à un axe ou global."""
     if notif.axe is not None:
-        return ("L'homme complet", f"{notif.libelle} — {notif.axe.nom}")
-    return ("L'homme complet", notif.libelle)
+        return ("Yiri", f"{notif.libelle} — {notif.axe.nom}")
+    return ("Yiri", notif.libelle)
 
 
 def verifier_et_envoyer_rappels():

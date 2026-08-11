@@ -5,7 +5,7 @@
 // avant d'en avoir besoin.
 
 self.addEventListener('push', (event) => {
-  let data = { title: "L'homme complet", body: 'Nouveau rappel' };
+  let data = { title: "Yiri", body: 'Nouveau rappel' };
   try {
     if (event.data) data = event.data.json();
   } catch (e) {

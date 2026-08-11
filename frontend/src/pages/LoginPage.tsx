@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <p style={styles.eyebrow}>L'homme complet</p>
+        <p style={styles.eyebrow}>Yiri</p>
         <h1 style={styles.title}>Bon retour</h1>
         <p style={styles.subtitle}>Connecte-toi pour reprendre ton suivi de la semaine.</p>
 

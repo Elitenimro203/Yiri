@@ -1,4 +1,4 @@
-# L'Homme Complet — Backend
+# Yiri — Backend
 
 API FastAPI pour le suivi du programme hebdomadaire (sommeil, sport, tech, anglais,
 lecture, expression, business dev, portfolio, méditation, sujet libre).
