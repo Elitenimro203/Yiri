@@ -17,6 +17,15 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
+      // requireInteraction : la notification reste affichée tant que tu ne
+      // l'as pas explicitement fermée/cliquée, au lieu de disparaître toute
+      // seule après quelques secondes (comportement par défaut du navigateur,
+      // trop discret pour un rappel qu'on ne doit pas manquer).
+      requireInteraction: true,
+      // Motif de vibration — pris en compte sur Android, ignoré sans effet
+      // sur iOS/desktop (aucun risque à le laisser).
+      vibrate: [200, 100, 200],
+      tag: 'yiri-rappel',
     })
   );
 });
