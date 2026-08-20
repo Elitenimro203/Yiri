@@ -18,3 +18,4 @@ class Utilisateur(Base):
     programmes = relationship("Programme", back_populates="utilisateur", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="utilisateur", cascade="all, delete-orphan")
     push_subscriptions = relationship("PushSubscription", back_populates="utilisateur", cascade="all, delete-orphan")
+    sessions_travail = relationship("SessionTravail", back_populates="utilisateur", cascade="all, delete-orphan")

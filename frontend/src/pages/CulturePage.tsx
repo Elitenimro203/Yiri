@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import Sidebar from '../components/Sidebar';
+import SessionTimer from '../components/SessionTimer';
 import {
   Programme,
   Axe,
@@ -15,6 +16,7 @@ import {
   toggleCase,
   axeActifJourIndex,
 } from '../api/programmes';
+import { SessionTravail, getSessionActive } from '../api/sessions';
 import { ApiError } from '../api/client';
 
 const NOMS_JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
@@ -29,6 +31,7 @@ export default function CulturePage() {
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [toggleEnCours, setToggleEnCours] = useState<string | null>(null); // `${axeId}-${jour}`
+  const [sessionActive, setSessionActive] = useState<SessionTravail | null>(null);
 
   const chargerTout = useCallback(async (prog: Programme) => {
     const semaine = prog.semaine_courante;
@@ -52,6 +55,13 @@ export default function CulturePage() {
       })
       .catch(() => setErreur('Impossible de charger tes données.'))
       .finally(() => setChargement(false));
+
+    // Session active possiblement démarrée depuis une autre page/session —
+    // on la retrouve ici pour que le chrono reprenne son état réel plutôt
+    // que de repartir de zéro visuellement.
+    getSessionActive()
+      .then(setSessionActive)
+      .catch(() => {});
   }, [chargerTout]);
 
   async function handleToggle(axe: Axe, jour: number) {
@@ -141,6 +151,12 @@ export default function CulturePage() {
                       );
                     })}
                   </div>
+                  <SessionTimer
+                    axe={axe}
+                    sessionActive={sessionActive}
+                    onChange={setSessionActive}
+                    onError={setErreur}
+                  />
                 </article>
               ))}
             </div>

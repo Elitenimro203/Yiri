@@ -14,3 +14,4 @@ from app.models.entree_suivi import EntreeSuivi  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
 from app.models.bilan import Bilan, DecisionBilan  # noqa: F401
 from app.models.push_subscription import PushSubscription  # noqa: F401
+from app.models.session_travail import SessionTravail, TypeSession  # noqa: F401

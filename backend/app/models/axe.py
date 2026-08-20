@@ -35,3 +35,4 @@ class Axe(Base):
     programme = relationship("Programme", back_populates="axes")
     entrees = relationship("EntreeSuivi", back_populates="axe", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="axe")
+    sessions_travail = relationship("SessionTravail", back_populates="axe", cascade="all, delete-orphan")
