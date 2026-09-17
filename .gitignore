@@ -1,0 +1,14 @@
+# Filet de sécurité en plus de backend/.gitignore et frontend/.gitignore —
+# ces derniers font foi pour leurs dossiers respectifs, celui-ci couvre
+# tout ce qui pourrait apparaître à la racine ou être oublié localement.
+.venv/
+venv/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+*.db
+.env
+.env.local
+.pytest_cache/
+tsconfig.tsbuildinfo
