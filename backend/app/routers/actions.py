@@ -74,6 +74,28 @@ def creer_action(
     return action
 
 
+def _toutes_actions_utilisateur(current_user: Utilisateur, db: Session):
+    """
+    Requête de base (sans filtre) : toutes les Actions réelles de
+    l'utilisateur (coche=True), qu'elles soient modernes ou legacy, avec ou
+    sans Saison. Extraite ici pour être réutilisée telle quelle par
+    lister_actions ET par la Trajectoire (routers/trajectory.py, Mission 7)
+    — même principe que _get_axe_ou_404 : une seule implémentation de la
+    condition de propriété, jamais une deuxième dérivée à côté.
+    """
+    return (
+        db.query(EntreeSuivi)
+        .join(EntreeSuivi.axe)
+        .filter(
+            EntreeSuivi.coche.is_(True),
+            or_(
+                Axe.id_utilisateur == current_user.id_utilisateur,
+                Axe.programme.has(id_utilisateur=current_user.id_utilisateur),
+            ),
+        )
+    )
+
+
 @router.get("", response_model=list[ActionOut])
 def lister_actions(
     axe_id: int | None = Query(default=None),
@@ -88,17 +110,7 @@ def lister_actions(
     qui s'est produit, c'est l'absence d'un fait (§2 : "l'Action appartient à
     la réalité").
     """
-    requete = (
-        db.query(EntreeSuivi)
-        .join(EntreeSuivi.axe)
-        .filter(
-            EntreeSuivi.coche.is_(True),
-            or_(
-                Axe.id_utilisateur == current_user.id_utilisateur,
-                Axe.programme.has(id_utilisateur=current_user.id_utilisateur),
-            ),
-        )
-    )
+    requete = _toutes_actions_utilisateur(current_user, db)
     if axe_id is not None:
         requete = requete.filter(EntreeSuivi.id_axe == axe_id)
     if engagement_id is not None:

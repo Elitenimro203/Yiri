@@ -1,204 +1,154 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
-import WeekTimeline from '../components/WeekTimeline';
-import GrowthCard from '../components/GrowthCard';
-import { STAGES, stadeActuel } from '../components/GrowthPlant';
-import {
-  Programme,
-  Axe,
-  EntreeSuivi,
-  PilierProgres,
-  Bilan,
-  Pilier,
-  PILIERS,
-  PILIER_LABELS,
-  listProgrammes,
-  listAxes,
-  getPiliers,
-  getGrilleSuivi,
-  listBilans,
-  nbJoursActifs,
-  calculerRegularite,
-} from '../api/programmes';
+import { getTrajectory, TrajectoryEvent, TypeEvenement } from '../api/trajectory';
+import { Saison, getSaisonActive } from '../api/seasons';
+import { Construction, listerConstructions } from '../api/constructions';
 
-const ICONS: Record<Pilier, string> = { corps: '◉', esprit: '⌁', caractere: '◇', impact: '↗' };
-const SEMAINES = [1, 2, 3, 4];
+const TYPE_LABELS: Record<TypeEvenement, string> = {
+  season_started: 'Saison commencée',
+  season_ended: 'Saison terminée',
+  construction_created: 'Construction créée',
+  action: 'Action',
+  observation: 'Observation',
+  reflection: 'Réflexion',
+  decision: 'Décision',
+};
 
-function jourIndexAujourdhui(): number {
-  const jsDay = new Date().getDay();
-  return (jsDay + 6) % 7;
-}
-
-interface PointSemaine {
-  semaine: number;
-  valeur: number | null;
-}
-
-interface EvenementTimeline {
-  date: Date;
-  titre: string;
-  detail?: string;
-  type: 'saison' | 'action' | 'reflexion';
-}
+// ◆ pour ce qui relève d'une pensée (réflexion/décision), ● pour un fait
+// (tout le reste) — même distinction visuelle que le mockup du cahier des
+// charges (§12), rien de plus.
+const TYPE_ICONE: Record<TypeEvenement, string> = {
+  season_started: '●', season_ended: '●', construction_created: '●',
+  action: '●', observation: '●', reflection: '◆', decision: '◆',
+};
 
 const DECISION_LABELS: Record<string, string> = {
-  avancer: 'Avancer', consolider: 'Consolider',
   continuer: 'Continuer', modifier: 'Modifier', reduire: 'Réduire', suspendre: 'Suspendre',
   abandonner: 'Abandonner', approfondir: 'Approfondir', ne_rien_changer: 'Ne rien changer',
 };
 
-function libelleDecision(b: Bilan): string {
-  const brute = b.decision ?? b.type_decision;
-  return brute ? (DECISION_LABELS[brute] ?? brute) : '—';
+type Filtre = 'tout' | 'saison' | number; // number = id_construction
+
+type Ligne =
+  | { kind: 'event'; event: TrajectoryEvent }
+  | { kind: 'action_group'; cle: string; constructionNom: string; actions: TrajectoryEvent[] };
+
+// Regroupe uniquement des Actions ADJACENTES de la même Construction — pas
+// de fenêtre temporelle arbitraire au-delà du jour (déjà le grain de
+// regroupement des sections ci-dessous), jamais une Observation, une
+// Réflexion, une Décision ou un événement structurel (§9). Les données ne
+// sont jamais modifiées : chaque Action groupée reste listée individuellement
+// dans `actions`, dépliable.
+function construireLignes(evenements: TrajectoryEvent[]): Ligne[] {
+  const lignes: Ligne[] = [];
+  let i = 0;
+  while (i < evenements.length) {
+    const e = evenements[i];
+    if (e.type === 'action' && e.construction) {
+      const idConstruction = e.construction.id_construction;
+      let j = i;
+      const groupe: TrajectoryEvent[] = [];
+      while (
+        j < evenements.length &&
+        evenements[j].type === 'action' &&
+        evenements[j].construction?.id_construction === idConstruction
+      ) {
+        groupe.push(evenements[j]);
+        j++;
+      }
+      if (groupe.length >= 2) {
+        lignes.push({ kind: 'action_group', cle: `${idConstruction}-${i}`, constructionNom: e.construction.nom, actions: groupe });
+      } else {
+        lignes.push({ kind: 'event', event: e });
+      }
+      i = j;
+    } else {
+      lignes.push({ kind: 'event', event: e });
+      i++;
+    }
+  }
+  return lignes;
 }
 
-const TIMELINE_DOT_COLOR: Record<EvenementTimeline['type'], string> = {
-  saison: 'var(--bloom)',
-  action: 'var(--sprout)',
-  reflexion: 'var(--text-muted)',
-};
+function contenuAffiche(e: TrajectoryEvent): string | null {
+  if (!e.content) return null;
+  if (e.type === 'decision') return DECISION_LABELS[e.content] ?? e.content;
+  if (e.type === 'observation' || e.type === 'reflection') return `« ${e.content} »`;
+  return e.content;
+}
 
-function MiniChart({ points, actuelle }: { points: PointSemaine[]; actuelle: number }) {
-  const w = 220;
-  const h = 70;
-  const padX = 12;
-  const stepX = (w - padX * 2) / (SEMAINES.length - 1);
-
-  const coords = points.map((p, i) => ({
-    x: padX + i * stepX,
-    y: p.valeur === null ? null : h - 10 - (p.valeur / 100) * (h - 20),
-    semaine: p.semaine,
-  }));
-
-  const segments: string[] = [];
-  for (let i = 0; i < coords.length - 1; i++) {
-    if (coords[i].y === null || coords[i + 1].y === null) continue;
-    segments.push(`M${coords[i].x},${coords[i].y} L${coords[i + 1].x},${coords[i + 1].y}`);
-  }
-
+function EvenementLigne({ event }: { event: TrajectoryEvent }) {
+  const contenu = contenuAffiche(event);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <line x1={padX} y1={h - 10} x2={w - padX} y2={h - 10} stroke="var(--line)" strokeWidth={1} />
-      {segments.map((d, i) => (
-        <path key={i} d={d} stroke="var(--sprout)" strokeWidth={2} fill="none" strokeLinecap="round" />
-      ))}
-      {coords.map((c, i) =>
-        c.y === null ? null : (
-          <circle
-            key={i}
-            cx={c.x}
-            cy={c.y}
-            r={c.semaine === actuelle ? 4.5 : 3}
-            fill={c.semaine === actuelle ? 'var(--bloom)' : 'var(--sprout)'}
-          />
-        )
-      )}
-    </svg>
+    <div style={styles.evenement}>
+      <span style={styles.icone}>{TYPE_ICONE[event.type]}</span>
+      <div>
+        <p style={styles.typeLabel}>{TYPE_LABELS[event.type]}</p>
+        {event.construction && <p style={styles.constructionNom}>{event.construction.nom}</p>}
+        {contenu && <p style={styles.contenu}>{contenu}</p>}
+      </div>
+    </div>
   );
 }
 
 export default function TrajectoryPage() {
-  const [programme, setProgramme] = useState<Programme | null>(null);
-  const [axes, setAxes] = useState<Axe[]>([]);
-  const [entreesSemaine, setEntreesSemaine] = useState<EntreeSuivi[]>([]);
-  const [dataParPilier, setDataParPilier] = useState<Record<Pilier, PointSemaine[]>>({
-    corps: [], esprit: [], caractere: [], impact: [],
-  });
-  const [lifetimeParSemaine, setLifetimeParSemaine] = useState<number[]>([]);
-  const [evenements, setEvenements] = useState<EvenementTimeline[]>([]);
+  const [evenements, setEvenements] = useState<TrajectoryEvent[]>([]);
+  const [saisonActive, setSaisonActive] = useState<Saison | null>(null);
+  const [constructions, setConstructions] = useState<Construction[]>([]);
+  const [filtre, setFiltre] = useState<Filtre>('tout');
+  const [groupesOuverts, setGroupesOuverts] = useState<Set<string>>(new Set());
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
 
-  const jourIdx = jourIndexAujourdhui();
-
   useEffect(() => {
-    listProgrammes()
-      .then(async (programmes) => {
-        const actif = programmes.find((p) => p.statut === 'actif') ?? programmes[0];
-        if (!actif) return;
-        setProgramme(actif);
-
-        const [axesData, piliersParSemaine, grillesParSemaine, bilans] = await Promise.all([
-          listAxes(actif.id_programme),
-          Promise.all(SEMAINES.map((s) => getPiliers(actif.id_programme, s).catch<PilierProgres[]>(() => []))),
-          Promise.all(SEMAINES.map((s) => getGrilleSuivi(actif.id_programme, s).catch<EntreeSuivi[]>(() => []))),
-          listBilans(actif.id_programme).catch<Bilan[]>(() => []),
-        ]);
-        setAxes(axesData);
-        setEntreesSemaine(grillesParSemaine[actif.semaine_courante - 1] ?? []);
-
-        const resultat: Record<Pilier, PointSemaine[]> = { corps: [], esprit: [], caractere: [], impact: [] };
-        PILIERS.forEach((p) => {
-          resultat[p] = SEMAINES.map((s, i) => {
-            if (s > actif.semaine_courante) return { semaine: s, valeur: null };
-            const trouve = piliersParSemaine[i].find((x) => x.pilier === p);
-            return { semaine: s, valeur: trouve ? trouve.pourcentage : null };
-          });
-        });
-        setDataParPilier(resultat);
-
-        let cumul = 0;
-        const cumulParSemaine = grillesParSemaine.map((grille) => {
-          cumul += grille.filter((e) => e.coche).length;
-          return cumul;
-        });
-        setLifetimeParSemaine(cumulParSemaine);
-
-        // Chronologie factuelle : uniquement des événements réellement datés,
-        // reconstruits à partir des données existantes (pas de nouvel
-        // algorithme, pas de nouvelle entité). Les Engagements/Observations
-        // n'existent pas encore côté backend — ils rejoindront cette
-        // chronologie dès les phases B et C.
-        const nomAxe = (id: number) => axesData.find((a) => a.id_axe === id)?.nom ?? 'Construction supprimée';
-
-        const actionsParJour = new Map<string, string[]>();
-        grillesParSemaine.flat().forEach((e) => {
-          if (!e.coche || !e.date_coche) return;
-          const cle = e.date_coche.slice(0, 10);
-          const liste = actionsParJour.get(cle) ?? [];
-          liste.push(nomAxe(e.id_axe));
-          actionsParJour.set(cle, liste);
-        });
-
-        const evtActions: EvenementTimeline[] = [...actionsParJour.entries()].map(([iso, noms]) => ({
-          date: new Date(iso),
-          type: 'action',
-          titre: `${noms.length} action${noms.length > 1 ? 's' : ''} réalisée${noms.length > 1 ? 's' : ''}`,
-          detail: noms.join(' · '),
-        }));
-
-        const evtReflexions: EvenementTimeline[] = bilans.map((b) => ({
-          date: new Date(b.date_creation),
-          type: 'reflexion',
-          titre: b.semaine !== null ? `Réflexion — semaine ${b.semaine}` : 'Réflexion',
-          detail: `Décision : ${libelleDecision(b)}`,
-        }));
-
-        const evtSaison: EvenementTimeline = {
-          date: new Date(actif.date_debut),
-          type: 'saison',
-          titre: `Saison commencée : ${actif.nom}`,
-        };
-
-        setEvenements(
-          [evtSaison, ...evtActions, ...evtReflexions].sort((a, b) => b.date.getTime() - a.date.getTime())
-        );
+    Promise.all([getSaisonActive(), listerConstructions()])
+      .then(([saison, liste]) => {
+        setSaisonActive(saison);
+        setConstructions(liste);
       })
-      .catch(() => setErreur('Impossible de charger ta trajectoire.'))
-      .finally(() => setChargement(false));
+      .catch(() => {});
   }, []);
 
-  const lifetimeActuel = lifetimeParSemaine[lifetimeParSemaine.length - 1] ?? 0;
-  const { stage, index: stageIdx } = stadeActuel(lifetimeActuel);
+  useEffect(() => {
+    setChargement(true);
+    const params =
+      filtre === 'saison' && saisonActive
+        ? { seasonId: saisonActive.id_saison, limit: 200 }
+        : typeof filtre === 'number'
+        ? { constructionId: filtre, limit: 200 }
+        : { limit: 200 };
 
-  // Panneau "arbre" secondaire — mêmes calculs que l'ancien Dashboard, pour
-  // la semaine courante uniquement (l'arbre reste une lecture de la semaine
-  // en cours, pas un nouvel algorithme).
-  const axesDeverrouilles = axes.filter((a) => a.deverrouille);
-  const idsAxesDeverrouilles = new Set(axesDeverrouilles.map((a) => a.id_axe));
-  const cocheesSemaine = entreesSemaine.filter((e) => e.coche && idsAxesDeverrouilles.has(e.id_axe)).length;
-  const possiblesSemaine = axesDeverrouilles.reduce((total, a) => total + nbJoursActifs(a), 0);
-  const regularite = calculerRegularite(axesDeverrouilles, entreesSemaine, jourIdx);
+    getTrajectory(params)
+      .then((page) => setEvenements(page.items))
+      .catch(() => setErreur('Impossible de charger ta trajectoire.'))
+      .finally(() => setChargement(false));
+  }, [filtre, saisonActive]);
+
+  function toggleGroupe(cle: string) {
+    setGroupesOuverts((prev) => {
+      const suivant = new Set(prev);
+      if (suivant.has(cle)) suivant.delete(cle);
+      else suivant.add(cle);
+      return suivant;
+    });
+  }
+
+  // Regroupement purement visuel par jour puis par mois — les données
+  // renvoyées par l'API restent une liste plate triée par date (§11).
+  const parJour = new Map<string, TrajectoryEvent[]>();
+  for (const e of evenements) {
+    const cle = e.date.slice(0, 10);
+    if (!parJour.has(cle)) parJour.set(cle, []);
+    parJour.get(cle)!.push(e);
+  }
+  const joursOrdonnes = [...parJour.keys()]; // déjà en ordre DESC, hérité du tri API
+
+  const parMois = new Map<string, string[]>(); // "2026-09" -> ["2026-09-18", ...]
+  for (const jour of joursOrdonnes) {
+    const cleMois = jour.slice(0, 7);
+    if (!parMois.has(cleMois)) parMois.set(cleMois, []);
+    parMois.get(cleMois)!.push(jour);
+  }
 
   return (
     <div style={styles.app}>
@@ -206,114 +156,86 @@ export default function TrajectoryPage() {
       <main className="page-main" style={styles.main}>
         <p style={styles.eyebrow}>Le temps long</p>
         <h1 style={styles.h1}>Trajectoire</h1>
-        <p style={styles.subtitle}>Qu'est-ce qui a changé dans ma vie au fil du temps ?</p>
+        <p style={styles.subtitle}>Ce qui s'est passé au fil du temps.</p>
+
+        <div style={styles.filtres}>
+          <button
+            onClick={() => setFiltre('tout')}
+            style={{ ...styles.filtreBtn, ...(filtre === 'tout' ? styles.filtreBtnActif : {}) }}
+          >
+            Tout
+          </button>
+          {saisonActive && (
+            <button
+              onClick={() => setFiltre('saison')}
+              style={{ ...styles.filtreBtn, ...(filtre === 'saison' ? styles.filtreBtnActif : {}) }}
+            >
+              Saison actuelle
+            </button>
+          )}
+          <select
+            value={typeof filtre === 'number' ? filtre : ''}
+            onChange={(e) => setFiltre(e.target.value ? Number(e.target.value) : 'tout')}
+            style={styles.filtreSelect}
+          >
+            <option value="">Construction…</option>
+            {constructions.map((c) => (
+              <option key={c.id_construction} value={c.id_construction}>{c.nom}</option>
+            ))}
+          </select>
+        </div>
 
         {chargement && <p style={{ color: 'var(--text-muted)' }}>Chargement…</p>}
         {erreur && <p style={{ color: 'var(--error)' }}>{erreur}</p>}
 
-        {!chargement && !programme && (
+        {!chargement && evenements.length === 0 && (
           <article style={styles.emptyCard}>
             <p style={styles.emptyText}>Rien à montrer pour l'instant.</p>
             <p style={styles.emptyQuestion}>
-              Cette page rassemblera bientôt ce qui s'est réellement passé au fil du temps — actions,
-              observations, réflexions — à mesure que tu avances sur tes Constructions.
+              Cette page rassemble ce qui s'est réellement passé — actions, observations, réflexions —
+              à mesure que tu avances sur tes Constructions.
             </p>
           </article>
         )}
 
-        {!chargement && programme && (
-          <>
-            <div style={styles.sectionHead}>
-              <p style={styles.eyebrowSmall}>Cette semaine</p>
-            </div>
-            <WeekTimeline axesDeverrouilles={axesDeverrouilles} entrees={entreesSemaine} jourIndexAujourdhui={jourIdx} />
-
-            <div style={styles.sectionHead}>
-              <p style={styles.eyebrowSmall}>Chronologie</p>
-              <h3 style={styles.h3}>Ce qui s'est réellement passé</h3>
-            </div>
-            <div style={styles.timeline}>
-              {evenements.length === 0 && (
-                <p style={{ color: 'var(--text-muted)' }}>Rien à afficher pour l'instant.</p>
-              )}
-              {evenements.map((evt, i) => (
-                <div key={i} style={styles.timelineItem}>
-                  <div style={{ ...styles.timelineDot, background: TIMELINE_DOT_COLOR[evt.type] }} />
-                  <div>
-                    <div style={styles.timelineRow}>
-                      <strong style={styles.timelineTitre}>{evt.titre}</strong>
-                      <span style={styles.timelineDate}>
-                        {evt.date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                    {evt.detail && <p style={styles.timelineDetail}>{evt.detail}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={styles.sectionHead}>
-              <p style={styles.eyebrowSmall}>Piliers dans le temps</p>
-              <h3 style={styles.h3}>Catégorisation, pas un score global</h3>
-            </div>
-            <section style={styles.grid}>
-              {PILIERS.map((p) => (
-                <article key={p} style={styles.card}>
-                  <div style={styles.cardHead}>
-                    <span style={styles.icon}>{ICONS[p]}</span>
-                    <h3 style={styles.pilierName}>{PILIER_LABELS[p]}</h3>
-                  </div>
-                  <MiniChart points={dataParPilier[p]} actuelle={programme.semaine_courante} />
-                  <div style={styles.legend}>
-                    {SEMAINES.map((s) => (
-                      <span key={s} style={{ opacity: s <= programme.semaine_courante ? 1 : 0.4 }}>
-                        S{s}
-                      </span>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </section>
-
-            <div style={styles.sectionHead}>
-              <p style={styles.eyebrowSmall}>L'arbre — une interprétation, pas le moteur</p>
-              <h3 style={styles.h3}>Ton stade de vie a évolué ainsi</h3>
-            </div>
-
-            <article style={styles.stepperCard}>
-              <div style={styles.stepper}>
-                {STAGES.map((s, i) => (
-                  <div key={s.nom} style={styles.step}>
-                    <div
-                      style={{
-                        ...styles.stepDot,
-                        ...(i <= stageIdx ? styles.stepDotDone : {}),
-                        ...(i === stageIdx ? styles.stepDotCurrent : {}),
-                      }}
-                    />
-                    <small style={{ color: i <= stageIdx ? 'var(--text)' : 'var(--text-muted)' }}>{s.nom}</small>
-                    {i < STAGES.length - 1 && (
-                      <div style={{ ...styles.stepLine, ...(i < stageIdx ? styles.stepLineDone : {}) }} />
+        {!chargement &&
+          [...parMois.entries()].map(([cleMois, jours]) => (
+            <div key={cleMois}>
+              <p style={styles.moisLabel}>
+                {new Date(`${cleMois}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).toUpperCase()}
+              </p>
+              {jours.map((jour) => {
+                const lignes = construireLignes(parJour.get(jour)!);
+                return (
+                  <div key={jour} style={styles.jourBloc}>
+                    <p style={styles.jourLabel}>
+                      {new Date(jour).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }).toUpperCase()}
+                    </p>
+                    {lignes.map((ligne) =>
+                      ligne.kind === 'event' ? (
+                        <EvenementLigne key={`${ligne.event.type}-${ligne.event.source_type}-${ligne.event.source_id}`} event={ligne.event} />
+                      ) : (
+                        <div key={ligne.cle} style={styles.groupe}>
+                          <button onClick={() => toggleGroupe(ligne.cle)} style={styles.groupeToggle}>
+                            <span style={styles.icone}>●</span>
+                            {ligne.actions.length} actions — {ligne.constructionNom}
+                            <span style={styles.groupeChevron}>{groupesOuverts.has(ligne.cle) ? '▾' : '▸'}</span>
+                          </button>
+                          {groupesOuverts.has(ligne.cle) && (
+                            <div style={styles.groupeDetail}>
+                              {ligne.actions.map((a) => (
+                                <EvenementLigne key={`${a.type}-${a.source_type}-${a.source_id}`} event={a} />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
                     )}
                   </div>
-                ))}
-              </div>
-              <p style={styles.stepperCaption}>
-                {lifetimeActuel} actions réalisées depuis le début · stade actuel : <strong style={{ color: 'var(--sprout)' }}>{stage.nom}</strong>
-              </p>
-            </article>
-
-            <div style={{ marginTop: 16 }}>
-              <GrowthCard
-                lifetimeCoches={lifetimeActuel}
-                cocheesSemaine={cocheesSemaine}
-                possiblesSemaine={possiblesSemaine}
-                semaineCourante={programme.semaine_courante}
-                regularitePourcentage={regularite.pourcentage}
-              />
+                );
+              })}
             </div>
-          </>
-        )}
+          ))}
       </main>
     </div>
   );
@@ -321,36 +243,39 @@ export default function TrajectoryPage() {
 
 const styles: Record<string, React.CSSProperties> = {
   app: { display: 'flex', minHeight: '100vh' },
-  main: { flex: 1, maxWidth: 900, margin: '0 auto', padding: '28px 36px 60px', width: '100%' },
+  main: { flex: 1, maxWidth: 720, margin: '0 auto', padding: '28px 36px 60px', width: '100%' },
   eyebrow: { fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sprout)', fontWeight: 700, margin: 0 },
-  eyebrowSmall: { fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, margin: 0 },
   h1: { fontFamily: 'var(--serif)', fontSize: 27, margin: '6px 0 4px' },
-  subtitle: { color: 'var(--text-muted)', fontSize: 13, margin: '0 0 24px' },
+  subtitle: { color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px' },
+  filtres: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 26 },
+  filtreBtn: {
+    padding: '7px 14px', border: '1px solid var(--line)', background: 'var(--surface)', borderRadius: 8,
+    color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12.5,
+  },
+  filtreBtnActif: { borderColor: 'var(--sprout-dim)', background: 'var(--surface-2)', color: 'var(--sprout)' },
+  filtreSelect: {
+    padding: '7px 10px', border: '1px solid var(--line)', background: 'var(--surface)', borderRadius: 8,
+    color: 'var(--text)', fontSize: 12.5,
+  },
   emptyCard: { background: 'var(--surface)', border: '1px dashed var(--line)', borderRadius: 'var(--radius)', padding: 24 },
   emptyText: { color: 'var(--text-muted)', fontSize: 13, margin: '0 0 6px' },
   emptyQuestion: { fontSize: 13.5, color: 'var(--text)', margin: 0, maxWidth: 480 },
-  sectionHead: { margin: '28px 2px 12px', display: 'flex', flexDirection: 'column', gap: 4 },
-  h3: { margin: 0, fontSize: 16 },
-  timeline: { display: 'flex', flexDirection: 'column', gap: 4 },
-  timelineItem: { display: 'flex', gap: 12, padding: '10px 4px', borderBottom: '1px solid var(--line)' },
-  timelineDot: { width: 9, height: 9, borderRadius: '50%', marginTop: 5, flexShrink: 0 },
-  timelineRow: { display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
-  timelineTitre: { fontSize: 13.5 },
-  timelineDate: { fontSize: 11.5, color: 'var(--text-muted)', whiteSpace: 'nowrap' },
-  timelineDetail: { margin: '3px 0 0', color: 'var(--text-muted)', fontSize: 12 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 10 },
-  card: { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, padding: 16 },
-  cardHead: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 },
-  icon: { color: 'var(--sprout)', fontSize: 15 },
-  pilierName: { margin: 0, fontSize: 14, fontFamily: 'var(--serif)' },
-  legend: { display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', padding: '0 12px' },
-  stepperCard: { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', padding: 24 },
-  stepper: { display: 'flex', alignItems: 'center' },
-  step: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' },
-  stepDot: { width: 12, height: 12, borderRadius: '50%', border: '2px solid var(--line)', background: 'var(--bg)', marginBottom: 8, zIndex: 1 },
-  stepDotDone: { borderColor: 'var(--sprout)', background: 'var(--sprout-dim)' },
-  stepDotCurrent: { borderColor: 'var(--bloom)', background: 'var(--bloom)' },
-  stepLine: { position: 'absolute', top: 5, left: '55%', width: '90%', height: 2, background: 'var(--line)' },
-  stepLineDone: { background: 'var(--sprout-dim)' },
-  stepperCaption: { textAlign: 'center', color: 'var(--text-muted)', fontSize: 12.5, marginTop: 16 },
+  moisLabel: {
+    fontSize: 11, letterSpacing: '0.1em', color: 'var(--text-muted)', fontWeight: 700,
+    margin: '28px 0 4px', borderBottom: '1px solid var(--line)', paddingBottom: 6,
+  },
+  jourBloc: { marginTop: 14 },
+  jourLabel: { fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, margin: '0 0 8px' },
+  evenement: { display: 'flex', gap: 10, padding: '8px 0 8px 2px' },
+  icone: { color: 'var(--sprout)', fontSize: 12, lineHeight: '20px' },
+  typeLabel: { margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--text)' },
+  constructionNom: { margin: '1px 0 0', fontSize: 12, color: 'var(--text-muted)' },
+  contenu: { margin: '4px 0 0', fontSize: 13, color: 'var(--text)', fontStyle: 'italic', maxWidth: 560 },
+  groupe: { padding: '2px 0' },
+  groupeToggle: {
+    display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none',
+    color: 'var(--text-muted)', fontSize: 12.5, cursor: 'pointer', padding: '8px 0 8px 2px', width: '100%', textAlign: 'left',
+  },
+  groupeChevron: { marginLeft: 'auto', color: 'var(--text-muted)' },
+  groupeDetail: { paddingLeft: 20, borderLeft: '1px solid var(--line)', marginLeft: 6 },
 };

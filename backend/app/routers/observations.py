@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models.axe import Axe
 from app.models.entree_suivi import EntreeSuivi
 from app.models.observation import Observation
 from app.models.utilisateur import Utilisateur
@@ -17,22 +16,22 @@ router = APIRouter(prefix="/observations", tags=["observations"])
 
 def _get_entree_ou_404(entree_id: int, current_user: Utilisateur, db: Session) -> EntreeSuivi:
     """
-    Même principe anti-IDOR que _get_axe_ou_404 (routers/axes.py) et
-    _get_engagement_ou_404 (routers/engagements.py) : on remonte jusqu'à
-    Programme.id_utilisateur via un join, on ne fait jamais confiance à un
-    ID fourni par le client sans vérifier la chaîne de propriété.
+    Anti-IDOR — réutilise _get_axe_ou_404 (routers/axes.py), même principe
+    que _get_action_ou_404 (routers/actions.py, Mission 6) : on récupère
+    d'abord la ligne, puis on vérifie la propriété de son Axe via l'unique
+    implémentation correcte, plutôt que de re-dériver la condition
+    "id_utilisateur direct OU via Programme" une quatrième fois ici.
+
+    Mission 7 §1 — bug corrigé : l'ancienne version ne vérifiait la
+    propriété que via `Axe.programme.has(id_utilisateur=...)`, ce qui
+    excluait à tort le chemin Construction sans Saison → Action →
+    Observation (même bug que celui déjà corrigé sur _get_engagement_ou_404
+    et creer_notification en Mission 6, jamais appliqué ici par oubli).
     """
-    entree = (
-        db.query(EntreeSuivi)
-        .join(EntreeSuivi.axe)
-        .filter(
-            EntreeSuivi.id_entree == entree_id,
-            Axe.programme.has(id_utilisateur=current_user.id_utilisateur),
-        )
-        .first()
-    )
+    entree = db.query(EntreeSuivi).filter(EntreeSuivi.id_entree == entree_id).first()
     if entree is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action (EntreeSuivi) introuvable")
+    _get_axe_ou_404(entree.id_axe, current_user, db)  # lève 404 si l'axe n'appartient pas à current_user
     return entree
 
 

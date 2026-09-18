@@ -218,6 +218,25 @@ def creer_reflexion(
     return bilan
 
 
+def _tous_bilans_utilisateur(current_user: Utilisateur, db: Session):
+    """
+    Requête de base (sans tri), réutilisée par lister_mes_reflexions ET par
+    la Trajectoire (routers/trajectory.py, Mission 7) — même principe que
+    _toutes_actions_utilisateur (routers/actions.py) : une seule
+    implémentation de la condition de propriété.
+    """
+    return (
+        db.query(Bilan)
+        .outerjoin(Bilan.programme)
+        .filter(
+            or_(
+                Bilan.id_utilisateur == current_user.id_utilisateur,
+                and_(Bilan.id_utilisateur.is_(None), Programme.id_utilisateur == current_user.id_utilisateur),
+            )
+        )
+    )
+
+
 @router.get("/bilans", response_model=list[BilanOut])
 def lister_mes_reflexions(
     current_user: Utilisateur = Depends(get_current_user),
@@ -229,18 +248,7 @@ def lister_mes_reflexions(
     totalement libres — un seul concept, une seule liste (§20). Couvre aussi
     les Bilans historiques sans id_utilisateur, déduits via leur Programme.
     """
-    return (
-        db.query(Bilan)
-        .outerjoin(Bilan.programme)
-        .filter(
-            or_(
-                Bilan.id_utilisateur == current_user.id_utilisateur,
-                and_(Bilan.id_utilisateur.is_(None), Programme.id_utilisateur == current_user.id_utilisateur),
-            )
-        )
-        .order_by(Bilan.date_creation.desc())
-        .all()
-    )
+    return _tous_bilans_utilisateur(current_user, db).order_by(Bilan.date_creation.desc()).all()
 
 
 @router.get("/bilans/{bilan_id}", response_model=BilanOut)

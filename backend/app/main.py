@@ -12,7 +12,7 @@ from app.core.migrations import (
 )
 from app.core.scheduler import demarrer_scheduler, arreter_scheduler
 from app import models  # noqa: F401 — nécessaire pour que Base.metadata voie toutes les tables
-from app.routers import auth, programmes, axes, suivi, notifications, bilans, push, session_travail, engagements, observations, seasons, constructions, actions
+from app.routers import auth, programmes, axes, suivi, notifications, bilans, push, session_travail, engagements, observations, seasons, constructions, actions, trajectory
 
 settings = get_settings()
 app = FastAPI(title="Yiri — API", version="0.1.0")
@@ -69,6 +69,7 @@ app.include_router(observations.router)
 app.include_router(seasons.router)
 app.include_router(constructions.router)
 app.include_router(actions.router)
+app.include_router(trajectory.router)
 
 
 @app.get("/health")

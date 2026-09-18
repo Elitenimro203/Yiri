@@ -32,6 +32,24 @@ def _axe_vers_construction(a: Axe) -> ConstructionOut:
 _get_construction_ou_404 = _get_axe_ou_404
 
 
+def _toutes_constructions_utilisateur(current_user: Utilisateur, db: Session):
+    """
+    Requête de base (sans filtre saison, sans tri), réutilisée par
+    lister_constructions ET par la Trajectoire (routers/trajectory.py,
+    Mission 7) — même principe que _toutes_actions_utilisateur.
+    """
+    return (
+        db.query(Axe)
+        .outerjoin(Axe.programme)
+        .filter(
+            or_(
+                Axe.id_utilisateur == current_user.id_utilisateur,
+                and_(Axe.id_utilisateur.is_(None), Axe.programme.has(id_utilisateur=current_user.id_utilisateur)),
+            )
+        )
+    )
+
+
 @router.get("", response_model=list[ConstructionOut])
 def lister_constructions(
     season_id: int | None = Query(default=None),
@@ -45,16 +63,7 @@ def lister_constructions(
     historiques sans id_utilisateur, déduits via leur Programme — un seul
     concept, une seule liste (même principe que GET /bilans, Mission 4).
     """
-    requete = (
-        db.query(Axe)
-        .outerjoin(Axe.programme)
-        .filter(
-            or_(
-                Axe.id_utilisateur == current_user.id_utilisateur,
-                and_(Axe.id_utilisateur.is_(None), Axe.programme.has(id_utilisateur=current_user.id_utilisateur)),
-            )
-        )
-    )
+    requete = _toutes_constructions_utilisateur(current_user, db)
     if season_id is not None:
         requete = requete.filter(Axe.id_programme == season_id)
     axes = requete.order_by(Axe.ordre_affichage).all()
