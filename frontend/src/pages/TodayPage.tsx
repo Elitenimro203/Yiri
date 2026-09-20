@@ -1,125 +1,102 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import RitualToday from '../components/RitualToday';
 import MantraCard from '../components/MantraCard';
-import {
-  Programme,
-  Axe,
-  EntreeSuivi,
-  listProgrammes,
-  listAxes,
-  getGrilleSuivi,
-  toggleCase,
-} from '../api/programmes';
 import { Saison, getSaisonActive } from '../api/seasons';
 import { Construction, listerConstructions } from '../api/constructions';
 import { Engagement, listerEngagements } from '../api/engagements';
-import { Action, listerActions } from '../api/actions';
+import { Action, listerActions, creerAction } from '../api/actions';
 import { Observation, listerObservations, creerObservation } from '../api/observations';
-import { ApiError } from '../api/client';
-
-function jourIndexAujourdhui(): number {
-  const jsDay = new Date().getDay(); // 0 = dimanche
-  return (jsDay + 6) % 7; // 0 = lundi ... 6 = dimanche
-}
+import { Bilan, TypeDecision, listerMesReflexions } from '../api/programmes';
 
 // Nombre maximum de Constructions mises en avant dans "Aujourd'hui" — au-delà,
 // on renvoie vers la page Constructions plutôt que de tout entasser ici.
 const MAX_CONSTRUCTIONS_MISES_EN_AVANT = 3;
 
+const TYPE_DECISION_LABELS: Record<TypeDecision, string> = {
+  continuer: 'Continuer', modifier: 'Modifier', reduire: 'Réduire', suspendre: 'Suspendre',
+  abandonner: 'Abandonner', approfondir: 'Approfondir', ne_rien_changer: 'Ne rien changer',
+};
+const DECISION_LABELS_LEGACY: Record<string, string> = { avancer: 'Avancer', consolider: 'Consolider' };
+
+function libelleDecision(b: Bilan): string {
+  if (b.type_decision) return TYPE_DECISION_LABELS[b.type_decision];
+  if (b.decision) return DECISION_LABELS_LEGACY[b.decision] ?? b.decision;
+  return '—';
+}
+
 export default function TodayPage() {
-  // Mission 6 §15 : TodayPage doit fonctionner AVEC ou SANS Saison active.
-  // `programme`/`axes`/`entreesSemaine` ne servent plus qu'à la grille
-  // hebdomadaire legacy (RitualToday) — tout le reste (Constructions,
-  // Engagements, Actions, Observations) se base sur les API modernes
-  // (`/constructions`, `/actions`), qui ne dépendent jamais d'une Saison.
-  const [programme, setProgramme] = useState<Programme | null>(null);
+  // Mission 9 : Today ne dépend plus du tout de Programme/Axe/EntreeSuivi
+  // (grille hebdomadaire legacy) — uniquement des API modernes
+  // (`/seasons`, `/constructions`, `/engagements`, `/actions`,
+  // `/observations`, `/bilans`), qui ne dépendent jamais d'une Saison ni
+  // d'un verrou Wakati. La grille hebdomadaire reste consultable et
+  // modifiable depuis ConstructionsPage pour les Constructions qui en ont
+  // réellement une — Today ne la reprend plus (§8).
   const [saisonActive, setSaisonActive] = useState<Saison | null>(null);
-  const [axes, setAxes] = useState<Axe[]>([]);
-  const [entreesSemaine, setEntreesSemaine] = useState<EntreeSuivi[]>([]);
   const [constructions, setConstructions] = useState<Construction[]>([]);
-  const [engagementsPertinents, setEngagementsPertinents] = useState<Engagement[]>([]);
+  const [engagementsParConstruction, setEngagementsParConstruction] = useState<Record<number, Engagement[]>>({});
   const [actionsRecentes, setActionsRecentes] = useState<Action[]>([]);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [reflexionsRecentes, setReflexionsRecentes] = useState<Bilan[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [toggleEnCours, setToggleEnCours] = useState<number | null>(null);
-  const [observations, setObservations] = useState<Observation[]>([]);
+
   const [nouvelleObservation, setNouvelleObservation] = useState('');
   const [envoiObservationEnCours, setEnvoiObservationEnCours] = useState(false);
 
-  const jourIdx = jourIndexAujourdhui();
+  const [formulaireOuvertPour, setFormulaireOuvertPour] = useState<number | null>(null);
+  const [contenuAction, setContenuAction] = useState('');
+  const [engagementChoisi, setEngagementChoisi] = useState<number | ''>('');
+  const [dateAction, setDateAction] = useState(() => new Date().toISOString().slice(0, 10));
+  const [envoiActionEnCours, setEnvoiActionEnCours] = useState(false);
 
-  const chargerGrilleHebdo = useCallback(async (prog: Programme) => {
-    const [axesData, entreesData] = await Promise.all([
-      listAxes(prog.id_programme),
-      getGrilleSuivi(prog.id_programme, prog.semaine_courante),
+  async function chargerActionsEtObservations() {
+    const [actions, obs] = await Promise.all([
+      listerActions().catch(() => [] as Action[]),
+      listerObservations().catch(() => [] as Observation[]),
     ]);
-    setAxes(axesData);
-    setEntreesSemaine(entreesData);
-  }, []);
+    setActionsRecentes(actions.slice(0, 5));
+    setObservations(obs.slice(0, 3));
+  }
 
   useEffect(() => {
     getSaisonActive().then(setSaisonActive).catch(() => {});
-
-    listProgrammes()
-      .then((programmes) => {
-        const actif = programmes.find((p) => p.statut === 'actif') ?? null;
-        setProgramme(actif);
-        if (actif) return chargerGrilleHebdo(actif);
-      })
-      .catch(() => {});
 
     listerConstructions()
       .then(async (liste) => {
         setConstructions(liste);
 
-        // Constructions prioritaires : celles qui ne sont ni terminées ni
-        // abandonnées (une Construction historique sans statut est traitée
-        // comme active), triées par ordre d'affichage — jamais filtrées par
-        // "déverrouillée dans une Saison" (§11 : Saison n'est pas un
-        // prérequis technique).
+        // Constructions à l'attention : ni terminées ni abandonnées — jamais
+        // filtrées par "déverrouillée dans une Saison" (une Construction sans
+        // Saison mérite autant l'attention qu'une autre, §6).
         const misesEnAvant = [...liste]
           .filter((c) => c.statut !== 'terminee' && c.statut !== 'abandonnee')
           .sort((a, b) => a.ordre_affichage - b.ordre_affichage)
           .slice(0, MAX_CONSTRUCTIONS_MISES_EN_AVANT);
 
-        const listesEngagements = await Promise.all(
+        const listes = await Promise.all(
           misesEnAvant.map((c) => listerEngagements(c.id_construction).catch(() => [] as Engagement[]))
         );
-        setEngagementsPertinents(listesEngagements.flat().filter((e) => e.actif));
+        const map: Record<number, Engagement[]> = {};
+        misesEnAvant.forEach((c, i) => {
+          // actif ≠ à faire aujourd'hui (§7) — juste ce à quoi la personne
+          // s'est actuellement engagée, affiché sans injonction.
+          map[c.id_construction] = listes[i].filter((e) => e.actif);
+        });
+        setEngagementsParConstruction(map);
       })
       .catch(() => setErreur('Impossible de charger tes Constructions.'))
       .finally(() => setChargement(false));
 
-    // Actions récentes — indépendant de toute Saison (Mission 6).
-    listerActions()
-      .then((liste) => setActionsRecentes(liste.slice(0, 5)))
-      .catch(() => {});
+    chargerActionsEtObservations().catch(() => {});
 
-    // Observations — indépendant du programme (une Observation peut exister
-    // sans Construction ni Action, voir Mission 3), chargé à part.
-    listerObservations()
-      .then((liste) => setObservations(liste.slice(0, 3)))
+    // Réflexions récentes — facultatif (§10), simple lecture, aucune
+    // dépendance à une Saison (Mission 4).
+    listerMesReflexions()
+      .then((liste) => setReflexionsRecentes(liste.slice(0, 2)))
       .catch(() => {});
-  }, [chargerGrilleHebdo]);
-
-  async function handleToggle(axeId: number) {
-    if (!programme) return;
-    setToggleEnCours(axeId);
-    try {
-      await toggleCase(axeId, programme.semaine_courante, jourIdx);
-      await chargerGrilleHebdo(programme);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 423) {
-        setErreur(err.detail);
-      } else {
-        setErreur("Impossible d'enregistrer — réessaie.");
-      }
-    } finally {
-      setToggleEnCours(null);
-    }
-  }
+  }, []);
 
   async function handleAjouterObservation() {
     const contenu = nouvelleObservation.trim();
@@ -136,7 +113,34 @@ export default function TodayPage() {
     }
   }
 
-  const axesDeverrouilles = axes.filter((a) => a.deverrouille);
+  function ouvrirFormulaire(constructionId: number) {
+    setFormulaireOuvertPour(formulaireOuvertPour === constructionId ? null : constructionId);
+    setContenuAction('');
+    setEngagementChoisi('');
+    setDateAction(new Date().toISOString().slice(0, 10));
+  }
+
+  async function handleEnregistrerAction(constructionId: number) {
+    setEnvoiActionEnCours(true);
+    try {
+      // §5 : date_action réelle, jamais semaine/jour ; id_engagement
+      // uniquement si la personne le choisit explicitement (§4 : pas de
+      // rattachement forcé).
+      await creerAction({
+        id_axe: constructionId,
+        id_engagement: engagementChoisi || null,
+        date_action: dateAction,
+        contenu: contenuAction.trim() || null,
+      });
+      setFormulaireOuvertPour(null);
+      await chargerActionsEtObservations(); // apparaît aussitôt dans "Ce qui s'est passé"
+    } catch {
+      setErreur("Impossible d'enregistrer l'action.");
+    } finally {
+      setEnvoiActionEnCours(false);
+    }
+  }
+
   const constructionsMisesEnAvant = [...constructions]
     .filter((c) => c.statut !== 'terminee' && c.statut !== 'abandonnee')
     .sort((a, b) => a.ordre_affichage - b.ordre_affichage)
@@ -152,20 +156,17 @@ export default function TodayPage() {
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}
           </p>
           <h1 style={styles.h1}>Qu'est-ce qui mérite ton attention aujourd'hui ?</h1>
-          {programme && (
+          {saisonActive && (
             <p style={styles.saison}>
-              Saison en cours : <strong>{programme.nom}</strong> — depuis le{' '}
-              {new Date(programme.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+              Saison en cours : <strong>{saisonActive.nom}</strong> — depuis le{' '}
+              {new Date(saisonActive.date_debut).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
             </p>
           )}
           {saisonActive?.intention && <p style={styles.intention}>{saisonActive.intention}</p>}
         </header>
 
         {chargement && <p style={{ color: 'var(--text-muted)' }}>Chargement…</p>}
-
-        {!chargement && erreur && (
-          <p style={{ color: 'var(--error)', marginBottom: 16 }}>{erreur}</p>
-        )}
+        {!chargement && erreur && <p style={{ color: 'var(--error)', marginBottom: 16 }}>{erreur}</p>}
 
         {!chargement && constructions.length === 0 && (
           <article style={styles.emptyCard}>
@@ -184,53 +185,80 @@ export default function TodayPage() {
                 <div style={styles.sectionHead}>
                   <div>
                     <p style={styles.eyebrow}>Ce que tu fais évoluer</p>
-                    <h3 style={styles.h3}>Constructions à ton attention</h3>
+                    <h3 style={styles.h3}>À ton attention</h3>
                   </div>
                   <Link to="/constructions" style={styles.link}>Voir toutes les constructions →</Link>
                 </div>
 
                 {constructionsMisesEnAvant.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                    Aucune Construction active pour l'instant.
-                  </p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Aucune Construction active pour l'instant.</p>
                 ) : (
-                  <div style={styles.constructionsList}>
-                    {constructionsMisesEnAvant.map((c) => (
-                      <Link to="/constructions" key={c.id_construction} style={styles.constructionCard}>
-                        <span style={styles.constructionNom}>{c.nom}</span>
-                      </Link>
-                    ))}
+                  <div style={styles.constructionsColonne}>
+                    {constructionsMisesEnAvant.map((c) => {
+                      const engagements = engagementsParConstruction[c.id_construction] ?? [];
+                      const formulaireOuvert = formulaireOuvertPour === c.id_construction;
+                      return (
+                        <article key={c.id_construction} style={styles.constructionCard}>
+                          <div style={styles.constructionHead}>
+                            <span style={styles.constructionNom}>{c.nom}</span>
+                            <Link to="/constructions" style={styles.link}>Voir →</Link>
+                          </div>
+                          {c.intention && <p style={styles.constructionIntention}>{c.intention}</p>}
+                          {engagements.map((e) => (
+                            <p key={e.id_engagement} style={styles.engagementLine}>{e.description}</p>
+                          ))}
+
+                          {!formulaireOuvert ? (
+                            <button onClick={() => ouvrirFormulaire(c.id_construction)} style={styles.enregistrerBtn}>
+                              Enregistrer ce qui s'est passé
+                            </button>
+                          ) : (
+                            <div style={styles.actionForm}>
+                              <input
+                                type="text"
+                                value={contenuAction}
+                                onChange={(e) => setContenuAction(e.target.value)}
+                                placeholder="Qu'est-ce qui s'est passé ?"
+                                style={styles.observationInput}
+                              />
+                              <div style={styles.actionFormRow}>
+                                <input
+                                  type="date"
+                                  value={dateAction}
+                                  onChange={(e) => setDateAction(e.target.value)}
+                                  style={styles.dateInput}
+                                />
+                                {engagements.length > 0 && (
+                                  <select
+                                    value={engagementChoisi}
+                                    onChange={(e) => setEngagementChoisi(e.target.value ? Number(e.target.value) : '')}
+                                    style={styles.engagementSelect}
+                                  >
+                                    <option value="">Engagement (facultatif)</option>
+                                    {engagements.map((e) => (
+                                      <option key={e.id_engagement} value={e.id_engagement}>{e.description}</option>
+                                    ))}
+                                  </select>
+                                )}
+                                <button
+                                  onClick={() => handleEnregistrerAction(c.id_construction)}
+                                  disabled={envoiActionEnCours}
+                                  style={styles.observationBtn}
+                                >
+                                  Enregistrer
+                                </button>
+                                <button onClick={() => setFormulaireOuvertPour(null)} style={styles.annulerBtn}>
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </>
-            )}
-
-            {engagementsPertinents.length > 0 && (
-              <>
-                <div style={styles.sectionHead}>
-                  <div>
-                    <p style={styles.eyebrow}>Ce à quoi tu t'es engagé</p>
-                    <h3 style={styles.h3}>Engagements pertinents</h3>
-                  </div>
-                </div>
-                <div style={styles.engagementsList}>
-                  {engagementsPertinents.map((e) => (
-                    <p key={e.id_engagement} style={styles.engagementLine}>{e.description}</p>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {programme && axesDeverrouilles.length > 0 && (
-              <section style={styles.section}>
-                <RitualToday
-                  axesDeverrouilles={axesDeverrouilles}
-                  entrees={entreesSemaine}
-                  jourIndex={jourIdx}
-                  onToggle={handleToggle}
-                  enCoursId={toggleEnCours}
-                />
-              </section>
             )}
 
             {actionsRecentes.length > 0 && (
@@ -298,6 +326,26 @@ export default function TodayPage() {
               )}
             </article>
 
+            {reflexionsRecentes.length > 0 && (
+              <>
+                <div style={styles.sectionHead}>
+                  <div>
+                    <p style={styles.eyebrow}>Ce que tu en comprends</p>
+                    <h3 style={styles.h3}>Dernières réflexions</h3>
+                  </div>
+                  <Link to="/reflections" style={styles.link}>Voir toutes les réflexions →</Link>
+                </div>
+                <div style={styles.engagementsList}>
+                  {reflexionsRecentes.map((b) => (
+                    <div key={b.id_bilan} style={styles.reflexionItem}>
+                      {b.remarque && <p style={styles.observationContenu}>« {b.remarque} »</p>}
+                      <small style={styles.observationDate}>{libelleDecision(b)}</small>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div style={styles.bottom}>
               <MantraCard />
             </div>
@@ -329,17 +377,29 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0, fontSize: 13, color: 'var(--text)', padding: '8px 12px',
     background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10,
   },
-  section: { marginBottom: 26 },
+  reflexionItem: {
+    display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px',
+    background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10,
+  },
   sectionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', margin: '30px 2px 12px', gap: 12, flexWrap: 'wrap' },
   h3: { margin: 0, fontSize: 16 },
   link: { fontSize: 12, color: 'var(--sprout)', textDecoration: 'none', whiteSpace: 'nowrap' },
-  constructionsList: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 },
+  constructionsColonne: { display: 'flex', flexDirection: 'column', gap: 12 },
   constructionCard: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12,
-    padding: '12px 14px', textDecoration: 'none', color: 'var(--text)', fontSize: 13,
+    background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 16px',
   },
-  constructionNom: { fontWeight: 600 },
+  constructionHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  constructionNom: { fontWeight: 600, fontSize: 14 },
+  constructionIntention: { margin: '4px 0 10px', fontSize: 12.5, color: 'var(--text-muted)', fontStyle: 'italic' },
+  enregistrerBtn: {
+    marginTop: 10, background: 'none', border: '1px solid var(--sprout-dim)', color: 'var(--sprout)',
+    borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer', fontWeight: 600,
+  },
+  actionForm: { marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 },
+  actionFormRow: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
+  dateInput: { background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 7, color: 'var(--text)', fontSize: 12, padding: '6px 8px' },
+  engagementSelect: { background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 7, color: 'var(--text)', fontSize: 12, padding: '6px 8px' },
+  annulerBtn: { background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' },
   observationCard: {
     background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius)',
     padding: 20, display: 'flex', flexDirection: 'column', gap: 14,
