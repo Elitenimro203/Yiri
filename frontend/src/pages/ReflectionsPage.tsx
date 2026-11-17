@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import {
   Programme,
-  EntreeSuivi,
   Bilan,
   TypeDecision,
   listProgrammes,
-  getGrilleSuivi,
   listBilans,
   creerReflexion,
   listerMesReflexions,
 } from '../api/programmes';
+import { Action, listerActions } from '../api/actions';
+import { actionsDeLaSemaine } from '../lib/semaineCivile';
 import { Construction, listerConstructions } from '../api/constructions';
 import { Observation, listerObservations } from '../api/observations';
 import { ApiError } from '../api/client';
@@ -40,7 +40,7 @@ function libelleDecision(b: Bilan): string {
 export default function ReflectionsPage() {
   const [programme, setProgramme] = useState<Programme | null>(null);
   const [constructions, setConstructions] = useState<Construction[]>([]);
-  const [entreesSemaine, setEntreesSemaine] = useState<EntreeSuivi[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
   const [bilansSemaine, setBilansSemaine] = useState<Bilan[]>([]);
   const [reflexionsLibres, setReflexionsLibres] = useState<Bilan[]>([]);
   const [observations, setObservations] = useState<Observation[]>([]);
@@ -50,28 +50,29 @@ export default function ReflectionsPage() {
   const [succes, setSucces] = useState(false);
 
   const [axeSelectionne, setAxeSelectionne] = useState<number | ''>('');
-  const [rattacherSemaine, setRattacherSemaine] = useState(true);
+  // Le rattachement à une semaine Wakati est un choix explicite, jamais un défaut.
+  const [rattacherSemaine, setRattacherSemaine] = useState(false);
   const [remarque, setRemarque] = useState('');
   const [comprehension, setComprehension] = useState('');
   const [changement, setChangement] = useState('');
   const [typeDecision, setTypeDecision] = useState<TypeDecision | null>(null);
 
   async function charger() {
-    const [programmes, constructionsData] = await Promise.all([
+    const [programmes, constructionsData, actionsData] = await Promise.all([
       listProgrammes().catch(() => []),
       listerConstructions().catch(() => [] as Construction[]),
+      listerActions(),
     ]);
     setConstructions(constructionsData);
+    setActions(actionsData);
 
     const actif = programmes.find((p) => p.statut === 'actif') ?? null;
     setProgramme(actif);
     if (actif) {
-      const [entreesData, bilans] = await Promise.all([
-        getGrilleSuivi(actif.id_programme, actif.semaine_courante),
-        listBilans(actif.id_programme),
-      ]);
-      setEntreesSemaine(entreesData);
+      const bilans = await listBilans(actif.id_programme);
       setBilansSemaine(bilans);
+    } else {
+      setBilansSemaine([]);
     }
     setChargement(false);
   }
@@ -99,7 +100,9 @@ export default function ReflectionsPage() {
     ? bilansSemaine.find((b) => b.semaine === programme.semaine_courante)
     : undefined;
 
-  const nbActionsRealisees = entreesSemaine.filter((e) => e.coche).length;
+  // "Cette semaine" = semaine civile réelle, jamais la progression Wakati.
+  // Logique isolée et testée dans lib/semaineCivile.ts (Mission 11).
+  const nbActionsRealisees = actionsDeLaSemaine(actions, new Date(), axeSelectionne || null).length;
 
   async function handleSubmit() {
     if (!typeDecision) return;
@@ -124,6 +127,7 @@ export default function ReflectionsPage() {
       setComprehension('');
       setChangement('');
       setTypeDecision(null);
+      setRattacherSemaine(false);
     } catch (err) {
       setErreur(err instanceof ApiError ? err.detail : "Impossible d'enregistrer la réflexion.");
     } finally {
@@ -146,13 +150,10 @@ export default function ReflectionsPage() {
           <>
             <article style={styles.card}>
               <p style={styles.eyebrowSmall}>Ce qui s'est passé</p>
-              {programme ? (
-                <p style={styles.contexteLigne}>
-                  {nbActionsRealisees} action{nbActionsRealisees !== 1 ? 's' : ''} réalisée{nbActionsRealisees !== 1 ? 's' : ''} cette semaine.
-                </p>
-              ) : (
-                <p style={styles.contexteLigne}>Pas de Saison active — cette réflexion sera libre.</p>
-              )}
+              <p style={styles.contexteLigne}>
+                {nbActionsRealisees} action{nbActionsRealisees !== 1 ? 's' : ''} enregistrée{nbActionsRealisees !== 1 ? 's' : ''} cette semaine
+                {axeSelectionne ? ' pour cette Construction' : ''}.
+              </p>
 
               <label style={styles.label}>
                 Construction concernée (facultatif)
