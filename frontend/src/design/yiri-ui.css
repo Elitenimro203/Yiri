@@ -46,7 +46,7 @@
 @media (max-width: 420px) { .yiri .y-numeral-day { font-size: 84px; } .yiri .y-question { font-size: 30px; } }
 
 /* Boutons */
-.y-btn { min-height: var(--y-touch-min); display: inline-flex; align-items: center; justify-content: center; gap: var(--y-space-2); padding: 0 22px; border-radius: var(--y-radius-pill); font: 600 15px/1.2 var(--y-font-sans); cursor: pointer; text-decoration: none; }
+.y-btn { white-space: nowrap; min-height: var(--y-touch-min); display: inline-flex; align-items: center; justify-content: center; gap: var(--y-space-2); padding: 0 22px; border-radius: var(--y-radius-pill); font: 600 15px/1.2 var(--y-font-sans); cursor: pointer; text-decoration: none; }
 .y-btn:disabled { opacity: 0.55; cursor: default; }
 .y-btn-principal { border: none; background: var(--y-accent); color: var(--y-on-accent); }
 .y-btn-secondaire { border: 1px solid var(--y-line); background: transparent; color: var(--y-ink); font-weight: 500; }
@@ -103,3 +103,51 @@
 .y-segment { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: var(--y-radius-pill); background: var(--y-bg); }
 .y-segment button { min-height: var(--y-touch-min); border-radius: var(--y-radius-pill); border: none; background: transparent; color: var(--y-ink-muted); font: 500 14px var(--y-font-sans); cursor: pointer; }
 .y-segment button[aria-pressed='true'] { background: var(--y-surface); color: var(--y-ink); font-weight: 600; box-shadow: 0 1px 4px rgba(17, 18, 20, 0.12); }
+
+/*
+ * Pont de compatibilité : les composants pas encore migrés (ex. SessionTimer)
+ * lisent les anciennes variables (--surface, --text, --sprout…). À
+ * l'intérieur de .yiri, on les fait pointer vers les tokens du thème choisi :
+ * ils prennent automatiquement les couleurs Yiri au lieu du vert sombre.
+ */
+.yiri {
+  --bg: var(--y-bg);
+  --surface: var(--y-surface);
+  --surface-2: var(--y-surface);
+  --line: var(--y-line);
+  --text: var(--y-ink);
+  --text-muted: var(--y-ink-muted);
+  --sprout: var(--y-link);
+  --sprout-dim: var(--y-surface);
+  --bloom: var(--y-link);
+  --bloom-dim: var(--y-surface);
+  --error: var(--y-danger);
+  --error-dim: var(--y-surface);
+  --locked: var(--y-ink-muted);
+  --serif: var(--y-font-display);
+  --sans: var(--y-font-sans);
+  --radius: var(--y-radius-lg);
+}
+
+/* Page détail et liste */
+.y-retour { min-height: var(--y-touch-min); display: inline-flex; align-items: center; font-size: 15px; font-weight: 500; text-decoration: none; color: var(--y-ink-muted); }
+.yiri .y-retour { color: var(--y-ink-muted); }
+.y-entete-page { display: flex; flex-direction: column; gap: var(--y-space-3); }
+.y-entete-page .y-overline { color: var(--y-ink-muted); }
+.y-statut { align-self: flex-start; padding: 4px 12px; border-radius: var(--y-radius-pill); background: var(--y-surface); color: var(--y-ink-muted); font-size: 12px; font-weight: 500; }
+.y-actions-ligne { display: flex; flex-wrap: wrap; gap: var(--y-space-2); }
+.y-engagement { display: flex; align-items: center; justify-content: space-between; gap: var(--y-space-3); padding: var(--y-space-3) 0; border-top: 1px solid var(--y-line); }
+.y-engagement:last-child { border-bottom: 1px solid var(--y-line); }
+.y-engagement[data-actif='false'] .y-body { color: var(--y-ink-muted); }
+.y-details { border-radius: var(--y-radius-lg); border: 1px solid var(--y-line); padding: var(--y-space-4) var(--y-space-5); }
+.y-details summary { min-height: var(--y-touch-min); display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: 15px; }
+.y-details[open] summary { margin-bottom: var(--y-space-3); }
+.y-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.y-grille-jour { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border-radius: var(--y-radius-sm); background: var(--y-surface); font-size: 12px; color: var(--y-ink-muted); }
+.y-grille-jour[data-coche='true'] { color: var(--y-ink); font-weight: 600; }
+.y-carte-saison { display: flex; flex-direction: column; gap: var(--y-space-3); padding: var(--y-space-5); border-radius: var(--y-radius-lg); background: var(--y-surface); }
+.y-champ-zone { min-height: 88px; resize: vertical; }
+.y-lien-carte { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; border-radius: var(--y-radius-lg); border: 1px solid var(--y-line); text-decoration: none; }
+.yiri .y-lien-carte { color: var(--y-ink); }
+.y-form-ligne > label { min-width: 0; max-width: 100%; }
+.y-champ-petit { max-width: 100%; text-overflow: ellipsis; }

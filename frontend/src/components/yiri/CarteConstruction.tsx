@@ -13,17 +13,18 @@ interface Props {
   engagements: Engagement[];
   derniereTrace: string | null;
   aujourdhui: string;
-  ouverte: boolean;
-  onBasculer: () => void;
-  onEnregistrer: (saisie: { contenu: string; date: string; idEngagement: number | null }) => Promise<void>;
-  envoiEnCours: boolean;
+  /** Sans ces trois props, la carte n'a pas de bouton + (liste Constructions). */
+  ouverte?: boolean;
+  onBasculer?: () => void;
+  onEnregistrer?: (saisie: { contenu: string; date: string; idEngagement: number | null }) => Promise<void>;
+  envoiEnCours?: boolean;
 }
 
 // Une Construction : ce que la personne choisit de faire évoluer. Jamais de
 // pourcentage, de compteur ni de jauge — seulement ce à quoi elle s'est
 // engagée et la date de sa dernière trace, comme un fait.
 export default function CarteConstruction({
-  construction: c, index, engagements, derniereTrace, aujourdhui, ouverte, onBasculer, onEnregistrer, envoiEnCours,
+  construction: c, index, engagements, derniereTrace, aujourdhui, ouverte = false, onBasculer, onEnregistrer, envoiEnCours = false,
 }: Props) {
   const [contenu, setContenu] = useState('');
   const [date, setDate] = useState(aujourdhui);
@@ -33,6 +34,7 @@ export default function CarteConstruction({
   const sousTitre = engagements[0]?.description ?? c.intention ?? null;
 
   async function enregistrer() {
+    if (!onEnregistrer) return;
     await onEnregistrer({ contenu: contenu.trim(), date, idEngagement: idEngagement || null });
     setContenu('');
     setIdEngagement('');
@@ -44,12 +46,14 @@ export default function CarteConstruction({
       <div className="y-carte-ligne">
         <div className="y-carte-fil" style={{ background: FILS[index % FILS.length] }} aria-hidden="true" />
         <div className="y-carte-corps">
-          <Link to="/constructions" className="y-carte-nom y-title-card">{c.nom}</Link>
+          <Link to={`/constructions/${c.id_construction}`} className="y-carte-nom y-title-card">{c.nom}</Link>
+          {c.statut === 'en_pause' && <span className="y-statut">En pause</span>}
           {sousTitre && <p className="y-label">{sousTitre}</p>}
           <p className="y-caption">
             {derniereTrace ? `Dernière trace : ${libelleJourRelatif(derniereTrace, aujourdhui).toLowerCase()}` : 'Pas encore de trace'}
           </p>
         </div>
+        {onEnregistrer && onBasculer && (
         <button
           type="button"
           className="y-carte-ajout"
@@ -60,6 +64,7 @@ export default function CarteConstruction({
         >
           <Icone nom={ouverte ? 'fermer' : 'plus'} />
         </button>
+        )}
       </div>
 
       {ouverte && (

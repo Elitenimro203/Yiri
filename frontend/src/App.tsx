@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import TodayPage from './pages/TodayPage';
 import ConstructionsPage from './pages/ConstructionsPage';
+import ConstructionDetailPage from './pages/ConstructionDetailPage';
 import TrajectoryPage from './pages/TrajectoryPage';
 import ReflectionsPage from './pages/ReflectionsPage';
 import RappelsPage from './pages/RappelsPage';
@@ -37,6 +38,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ConstructionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/constructions/:id"
+            element={
+              <ProtectedRoute>
+                <ConstructionDetailPage />
               </ProtectedRoute>
             }
           />
