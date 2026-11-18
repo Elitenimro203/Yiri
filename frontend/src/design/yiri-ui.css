@@ -200,3 +200,36 @@
 .y-google { min-height: 44px; display: flex; justify-content: center; }
 .y-auth-ou { display: flex; align-items: center; gap: var(--y-space-3); }
 .y-auth-ou::before, .y-auth-ou::after { content: ''; flex: 1; border-top: 1px solid var(--y-line); }
+
+/* ---------- Trajectoire (Design 3) ---------- */
+.y-glyphe-reflexion { width: 9px; height: 9px; background: var(--y-thread-1); transform: rotate(45deg); }
+.y-glyphe-debut { width: 9px; height: 9px; border-radius: 2px; background: var(--y-ink-muted); }
+.y-traj-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.y-traj-legende .y-glyphe { margin-left: 6px; }
+.y-traj-jour { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: var(--y-space-3); padding: var(--y-space-3) 0; border-top: 1px solid var(--y-line); }
+.y-traj-date { color: var(--y-ink-muted); padding-top: 2px; }
+.y-traj-fil { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--y-space-3); }
+.y-traj-ligne { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--y-space-2); align-items: baseline; }
+.y-traj-corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.y-traj-groupe { align-self: flex-start; min-height: var(--y-touch-min); padding: 0; border: none; background: none; color: var(--y-ink); font: 500 15px var(--y-font-sans); cursor: pointer; text-align: left; }
+.y-traj-corps .y-traj-fil { margin-top: var(--y-space-2); padding-left: var(--y-space-2); border-left: 1px solid var(--y-line); }
+
+/* ---------- Réflexions (Design 3) ---------- */
+.y-refl-champ { display: flex; flex-direction: column; gap: 6px; }
+.y-refl-case { display: flex; align-items: center; gap: var(--y-space-2); min-height: var(--y-touch-min); }
+.y-refl-entree { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.y-refl-wakati { display: flex; flex-direction: column; gap: 2px; padding-top: var(--y-space-2); }
+.y-puce[aria-checked='true'] { border: 1.5px solid var(--y-ink); background: var(--y-surface); font-weight: 600; }
+
+/* ---------- Rappels (Design 3) ---------- */
+.y-rappel { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px var(--y-space-3); align-items: baseline; padding: var(--y-space-3) 0; border-top: 1px solid var(--y-line); }
+.y-rappel .y-actions-ligne { grid-column: 2; }
+.y-rappel-heure { font: 400 24px/1 var(--y-font-display); font-variant-numeric: tabular-nums; color: var(--y-ink); }
+.y-rappel-corps { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.y-rappel-eteint .y-rappel-heure, .y-rappel-eteint .y-rappel-corps .y-body { color: var(--y-ink-muted); }
+
+
+.yiri .y-btn-texte.y-erreur { color: var(--y-danger); }
+.y-traj-corps .y-quote, .y-traj-corps .y-body { white-space: pre-line; overflow-wrap: anywhere; }
+.y-rappel-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; max-width: 360px; }
+.y-rappel-jours .y-puce { min-width: 0; min-height: var(--y-touch-min); padding: 0; justify-content: center; }
