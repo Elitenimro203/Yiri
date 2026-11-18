@@ -1,0 +1,203 @@
+/*
+ * Yiri — tokens du design system (généré depuis le design system « Yiri », tokens.json).
+ * Portée volontairement limitée à `.yiri` : les pages pas encore migrées gardent
+ * l'ancien thème (tokens.css). Toutes les variables sont préfixées --y- pour ne
+ * jamais entrer en collision avec --bg, --surface, --line… de l'ancien thème.
+ * Ne pas éditer à la main : modifier le design system puis régénérer.
+ */
+
+.yiri, .yiri[data-yiri-theme="blanc"] {
+  --y-bg: #FFFFFF;
+  --y-surface: #F5F6F8;
+  --y-ink: #111214;
+  --y-ink-muted: #5E636B;
+  --y-line: #E6E7EA;
+  --y-accent: #2346B8;
+  --y-on-accent: #FFFFFF;
+  --y-on-accent-muted: #BDC8EA;
+  --y-link: #2346B8;
+  --y-thread-1: #19295E;
+  --y-thread-2: #2346B8;
+  --y-thread-3: #7B90D4;
+  --y-danger: #B3261E;
+  --y-glass: rgba(255, 255, 255, 0.72);
+  --y-glass-border: rgba(17, 18, 20, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="noir"] {
+  --y-bg: #0B0B0C;
+  --y-surface: #161719;
+  --y-ink: #F2F2F3;
+  --y-ink-muted: #9EA2A8;
+  --y-line: #232427;
+  --y-accent: #3958BF;
+  --y-on-accent: #FFFFFF;
+  --y-on-accent-muted: #D7DEF2;
+  --y-link: #657ECD;
+  --y-thread-1: #8C9DD6;
+  --y-thread-2: #657ECD;
+  --y-thread-3: #4A68C9;
+  --y-danger: #F2B8B5;
+  --y-glass: rgba(11, 11, 12, 0.72);
+  --y-glass-border: rgba(242, 242, 243, 0.1);
+  --y-shadow-float: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="lagune"] {
+  --y-bg: #E5EEEB;
+  --y-surface: #F5F8F7;
+  --y-ink: #10302D;
+  --y-ink-muted: #46605C;
+  --y-line: #C6D6D1;
+  --y-accent: #1F6F68;
+  --y-on-accent: #F3FAF8;
+  --y-on-accent-muted: #CFE6E1;
+  --y-link: #1F6F68;
+  --y-thread-1: #174C48;
+  --y-thread-2: #1F6F68;
+  --y-thread-3: #508F89;
+  --y-danger: #B3261E;
+  --y-glass: rgba(229, 238, 235, 0.72);
+  --y-glass-border: rgba(16, 48, 45, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="hibiscus"] {
+  --y-bg: #FBEDEE;
+  --y-surface: #FDF8F8;
+  --y-ink: #2A1418;
+  --y-ink-muted: #6E4C52;
+  --y-line: #EBD3D6;
+  --y-accent: #B0284A;
+  --y-on-accent: #FFF5F6;
+  --y-on-accent-muted: #F6CFD8;
+  --y-link: #B0284A;
+  --y-thread-1: #661D2E;
+  --y-thread-2: #B0284A;
+  --y-thread-3: #CA6D83;
+  --y-danger: #B3261E;
+  --y-glass: rgba(251, 237, 238, 0.72);
+  --y-glass-border: rgba(42, 20, 24, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="atlantique"] {
+  --y-bg: #F5F2EA;
+  --y-surface: #FBFAF7;
+  --y-ink: #0E1F33;
+  --y-ink-muted: #4E5A68;
+  --y-line: #DFDACD;
+  --y-accent: #14467A;
+  --y-on-accent: #FFFFFF;
+  --y-on-accent-muted: #CFDDEF;
+  --y-link: #14467A;
+  --y-thread-1: #113153;
+  --y-thread-2: #14467A;
+  --y-thread-3: #6E8BA7;
+  --y-danger: #B3261E;
+  --y-glass: rgba(245, 242, 234, 0.72);
+  --y-glass-border: rgba(14, 31, 51, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="mangue"] {
+  --y-bg: #FFF4E2;
+  --y-surface: #FFFBF3;
+  --y-ink: #2B1B0E;
+  --y-ink-muted: #6B533D;
+  --y-line: #EBD9BC;
+  --y-accent: #C96F0E;
+  --y-on-accent: #2B1B0E;
+  --y-on-accent-muted: #2B1B0E;
+  --y-link: #A84A12;
+  --y-thread-1: #633010;
+  --y-thread-2: #A84A12;
+  --y-thread-3: #C27D50;
+  --y-danger: #B3261E;
+  --y-glass: rgba(255, 244, 226, 0.72);
+  --y-glass-border: rgba(43, 27, 14, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="menthe"] {
+  --y-bg: #E9F4EC;
+  --y-surface: #F6FBF7;
+  --y-ink: #12291C;
+  --y-ink-muted: #476150;
+  --y-line: #CFE3D5;
+  --y-accent: #1F7A4D;
+  --y-on-accent: #F4FBF6;
+  --y-on-accent-muted: #E6F5EC;
+  --y-link: #1B6B43;
+  --y-thread-1: #184D32;
+  --y-thread-2: #1F7A4D;
+  --y-thread-3: #529875;
+  --y-danger: #B3261E;
+  --y-glass: rgba(233, 244, 236, 0.72);
+  --y-glass-border: rgba(18, 41, 28, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri[data-yiri-theme="lilas"] {
+  --y-bg: #F1EDF7;
+  --y-surface: #F9F8FC;
+  --y-ink: #211A33;
+  --y-ink-muted: #5D5470;
+  --y-line: #DCD4EA;
+  --y-accent: #6B4FB3;
+  --y-on-accent: #FFFFFF;
+  --y-on-accent-muted: #E2D9F5;
+  --y-link: #5E43A3;
+  --y-thread-1: #42326D;
+  --y-thread-2: #6B4FB3;
+  --y-thread-3: #937EC7;
+  --y-danger: #B3261E;
+  --y-glass: rgba(241, 237, 247, 0.72);
+  --y-glass-border: rgba(33, 26, 51, 0.08);
+  --y-shadow-float: 0 12px 32px rgba(17, 18, 20, 0.14);
+  --y-shadow-sheet: 0 -10px 40px rgba(17, 18, 20, 0.2);
+}
+
+.yiri {
+  --y-space-1: 4px;
+  --y-space-2: 8px;
+  --y-space-3: 12px;
+  --y-space-4: 16px;
+  --y-space-5: 20px;
+  --y-space-6: 24px;
+  --y-space-7: 30px;
+  --y-space-8: 54px;
+  --y-radius-sm: 8px;
+  --y-radius-md: 16px;
+  --y-radius-lg: 22px;
+  --y-radius-sheet: 30px;
+  --y-radius-pill: 999px;
+  --y-touch-min: 44px;
+  --y-fab: 62px;
+  --y-screen-width: 390px;
+  --y-font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --y-font-sans: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+.yiri[data-yiri-theme="noir"] { color-scheme: dark; }
+
+.yiri .y-numeral-day { font-family: var(--y-font-display); font-size: 96px; line-height: 0.82; font-weight: 300; letter-spacing: -0.04em; }
+.yiri .y-question { font-family: var(--y-font-display); font-size: 34px; line-height: 1.08; font-weight: 300; font-style: italic; letter-spacing: -0.02em; }
+.yiri .y-title-sheet { font-family: var(--y-font-display); font-size: 32px; line-height: 1.1; font-weight: 300; font-style: italic; letter-spacing: -0.02em; }
+.yiri .y-title-card { font-family: var(--y-font-display); font-size: 22px; line-height: 1.15; font-weight: 400; }
+.yiri .y-quote { font-family: var(--y-font-display); font-size: 16px; line-height: 1.4; font-weight: 400; font-style: italic; }
+.yiri .y-body-lg { font-family: var(--y-font-sans); font-size: 17px; line-height: 1.45; font-weight: 400; }
+.yiri .y-body { font-family: var(--y-font-sans); font-size: 15px; line-height: 1.45; font-weight: 400; }
+.yiri .y-button { font-family: var(--y-font-sans); font-size: 15px; line-height: 1.2; font-weight: 600; }
+.yiri .y-label { font-family: var(--y-font-sans); font-size: 13px; line-height: 1.45; font-weight: 400; }
+.yiri .y-caption { font-family: var(--y-font-sans); font-size: 12px; line-height: 1.4; font-weight: 400; }
+.yiri .y-overline { font-family: var(--y-font-sans); font-size: 11px; line-height: 1.3; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.yiri .y-tab { font-family: var(--y-font-sans); font-size: 10px; line-height: 1.2; font-weight: 500; }
