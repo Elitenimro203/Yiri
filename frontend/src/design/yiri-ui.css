@@ -187,3 +187,12 @@
 .y-puces { display: flex; flex-wrap: wrap; gap: var(--y-space-2); }
 .y-puce { min-height: var(--y-touch-min); padding: 0 14px; border-radius: var(--y-radius-pill); border: 1px solid var(--y-line); background: var(--y-bg); color: var(--y-ink); font: 500 14px var(--y-font-sans); cursor: pointer; }
 .y-puce[aria-pressed='true'] { border: 1.5px solid var(--y-ink); background: var(--y-surface); font-weight: 600; }
+
+/* ---------- Connexion / inscription ---------- */
+.y-auth { min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 48px var(--y-space-6); }
+.y-auth-colonne { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: var(--y-space-7); }
+.y-auth-intro { display: flex; flex-direction: column; gap: var(--y-space-3); }
+.y-auth-form { display: flex; flex-direction: column; gap: var(--y-space-4); }
+.y-auth-form .y-btn { margin-top: var(--y-space-2); width: 100%; min-height: 52px; }
+.y-auth-bascule { text-align: center; }
+.y-auth-lien { border: none; background: none; padding: 0; font: inherit; font-weight: 600; cursor: pointer; }
