@@ -19,6 +19,9 @@ class Settings:
     DATABASE_URL: str = os.environ.get("DATABASE_URL", "sqlite:///./yiri.db")
     SECRET_KEY: str = os.environ["SECRET_KEY"]  # pas de défaut : on VEUT crasher au démarrage si absent
     ALGORITHM: str = "HS256"
+    # ID client OAuth Google (public) : sert à vérifier que le jeton Google a bien
+    # été émis pour Yiri. Vide = connexion Google désactivée.
+    GOOGLE_CLIENT_ID: str = os.environ.get("GOOGLE_CLIENT_ID", "")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
     # CSV d'origines autorisées, ex: "https://mon-app.vercel.app,http://localhost:5173"
     # Défaut "*" pour le dev local — à restreindre en prod via la variable d'env.

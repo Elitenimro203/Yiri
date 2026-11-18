@@ -22,3 +22,5 @@ services:
         sync: false       # l'adresse du frontend Vercel, ex. https://yiri.vercel.app
       - key: SECRET_KEY
         generateValue: true
+      - key: GOOGLE_CLIENT_ID   # public : vérifie que le jeton Google est bien émis pour Yiri
+        value: 582587199644-ibt2idgvbmac0tfvv2jns9lpm0kosqq1.apps.googleusercontent.com

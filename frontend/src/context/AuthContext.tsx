@@ -7,6 +7,7 @@ interface AuthContextValue {
   /** true tant qu'on vérifie un token existant au chargement — évite un flash de la page de login */
   chargement: boolean;
   connecter: (email: string, motDePasse: string) => Promise<void>;
+  connecterGoogle: (credential: string) => Promise<void>;
   deconnecter: () => void;
 }
 
@@ -45,8 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUtilisateur(me);
   }, []);
 
+  const connecterGoogle = useCallback(async (credential: string) => {
+    const { access_token } = await authApi.loginGoogle(credential);
+    setToken(access_token);
+    const me = await authApi.getMe();
+    setUtilisateur(me);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, connecter, deconnecter }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, connecter, connecterGoogle, deconnecter }}>
       {children}
     </AuthContext.Provider>
   );

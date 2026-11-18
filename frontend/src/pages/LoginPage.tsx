@@ -5,6 +5,7 @@ import { ApiError } from '../api/client';
 import { register } from '../api/auth';
 import { useApparence } from '../design/apparence';
 import { validerInscription } from '../lib/validationInscription';
+import BoutonGoogle from '../components/yiri/BoutonGoogle';
 import '../design/yiri-tokens.css';
 import '../design/yiri-ui.css';
 
@@ -16,7 +17,7 @@ type Mode = 'connexion' | 'inscription';
 const MESSAGE_RESEAU = "Le serveur ne répond pas. S'il était en veille, il se réveille : réessaie dans une minute.";
 
 export default function LoginPage() {
-  const { connecter } = useAuth();
+  const { connecter, connecterGoogle } = useAuth();
   const navigate = useNavigate();
   const [apparence] = useApparence();
 
@@ -70,6 +71,19 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGoogle(credential: string) {
+    setErreur(null);
+    setEnCours(true);
+    try {
+      await connecterGoogle(credential);
+      navigate('/');
+    } catch (err) {
+      setErreur(err instanceof ApiError ? err.detail : MESSAGE_RESEAU);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
   const inscription = mode === 'inscription';
 
   return (
@@ -87,6 +101,8 @@ export default function LoginPage() {
               : 'Connecte-toi pour retrouver ce qui mérite ton attention.'}
           </p>
         </div>
+
+        <BoutonGoogle sombre={apparence.theme === 'noir'} onJeton={handleGoogle} />
 
         <form className="y-auth-form" onSubmit={handleSubmit} noValidate>
           {inscription && (

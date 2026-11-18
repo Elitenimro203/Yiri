@@ -42,6 +42,20 @@ def ajouter_id_engagement_sur_entrees_suivi(engine: Engine) -> None:
         )
 
 
+def ajouter_google_sub_sur_utilisateurs(engine: Engine) -> None:
+    """
+    Connexion Google : ajoute la colonne nullable `google_sub` à `utilisateurs`
+    si elle n'existe pas encore (comptes existants : NULL, rien d'autre ne
+    change). Idempotent, sûr à chaque démarrage, après create_all().
+    """
+    inspecteur = inspect(engine)
+    if "google_sub" in {c["name"] for c in inspecteur.get_columns("utilisateurs")}:
+        return
+    with engine.begin() as connexion:
+        connexion.execute(text("ALTER TABLE utilisateurs ADD COLUMN google_sub VARCHAR(64)"))
+        connexion.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_utilisateurs_google_sub ON utilisateurs (google_sub)"))
+
+
 def faire_evoluer_bilans_vers_reflexion(engine: Engine) -> None:
     """
     Mission 4 — fait évoluer `bilans` (table Wakati historique) vers le

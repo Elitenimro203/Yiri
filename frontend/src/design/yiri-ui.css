@@ -196,3 +196,7 @@
 .y-auth-form .y-btn { margin-top: var(--y-space-2); width: 100%; min-height: 52px; }
 .y-auth-bascule { text-align: center; }
 .y-auth-lien { border: none; background: none; padding: 0; font: inherit; font-weight: 600; cursor: pointer; }
+.y-auth-google { display: flex; flex-direction: column; gap: var(--y-space-5); }
+.y-google { min-height: 44px; display: flex; justify-content: center; }
+.y-auth-ou { display: flex; align-items: center; gap: var(--y-space-3); }
+.y-auth-ou::before, .y-auth-ou::after { content: ''; flex: 1; border-top: 1px solid var(--y-line); }

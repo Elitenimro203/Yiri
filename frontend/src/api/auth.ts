@@ -28,6 +28,11 @@ export function register(email: string, motDePasse: string, nom: string): Promis
   });
 }
 
+/** Échange le jeton d'identité Google contre un jeton de session Yiri. */
+export function loginGoogle(credential: string): Promise<TokenResponse> {
+  return apiRequest<TokenResponse>('/auth/google', { method: 'POST', body: { credential } });
+}
+
 export function getMe(): Promise<Utilisateur> {
   return apiRequest<Utilisateur>('/auth/me');
 }

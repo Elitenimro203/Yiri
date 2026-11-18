@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.core.database import Base, engine
 from app.core.migrations import (
+    ajouter_google_sub_sur_utilisateurs,
     ajouter_id_engagement_sur_entrees_suivi,
     faire_evoluer_bilans_vers_reflexion,
     faire_evoluer_programme_vers_saison,
@@ -38,6 +39,7 @@ def on_startup():
     # mais ne touche pas à `entrees_suivi` (déjà existante) — la nouvelle
     # colonne nullable id_engagement doit être ajoutée à part, après coup.
     ajouter_id_engagement_sur_entrees_suivi(engine)
+    ajouter_google_sub_sur_utilisateurs(engine)
     # Mission 4 : fait évoluer `bilans` vers le modèle Réflexion (colonnes
     # nullables ajoutées + contraintes NOT NULL historiques assouplies).
     faire_evoluer_bilans_vers_reflexion(engine)

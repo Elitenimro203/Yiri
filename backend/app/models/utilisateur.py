@@ -13,6 +13,9 @@ class Utilisateur(Base):
     email = Column(String(150), unique=True, nullable=False, index=True)
     mot_de_passe_hash = Column(String(255), nullable=False)
     nom = Column(String(100), nullable=False)
+    # Connexion Google : identifiant stable du compte Google (« sub »). NULL pour
+    # un compte créé avec mot de passe et jamais relié à Google.
+    google_sub = Column(String(64), unique=True, nullable=True, index=True)
     date_creation = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     programmes = relationship("Programme", back_populates="utilisateur", cascade="all, delete-orphan")
