@@ -195,21 +195,19 @@ export default function TodayPage() {
 
           {pret && etape === 'vide' && (
             <>
+              {/* Une seule question (le titre, qui donne le sens) ; la carte
+                  dit concrètement quoi faire, exemples à l'appui. */}
               <section className="y-premier" aria-labelledby="titre-premier">
-                <p className="y-caption y-muted">Pour commencer, une seule question.</p>
-                <h2 id="titre-premier" className="y-premier-question">Qu'est-ce qui s'est passé aujourd'hui&#8239;?</h2>
-                <p className="y-label y-muted">Quelque chose que tu as fait, ou que tu as remarqué. Même petit.</p>
+                <p className="y-overline y-muted">Pour commencer</p>
+                <h2 id="titre-premier" className="y-premier-consigne">Note une chose que tu as faite ou remarquée aujourd'hui. Même petite.</h2>
+                <p className="y-label y-muted">Par exemple : « Lu 20 pages de mon livre » ou « Je me concentre mieux le matin ».</p>
                 <div><button type="button" className="y-btn y-btn-principal" onClick={ouvrirNoter}>Noter</button></div>
               </section>
               <Link to="/constructions?choisir=1" className="y-lien-carte">
                 <span className="y-caption y-muted">Quand tu seras prêt</span>
-                <span className="y-body" style={{ fontWeight: 600 }}>Choisir une chose à faire évoluer →</span>
-                <span className="y-label y-muted">Une capacité, une pratique, un projet, une relation… Rien ne presse.</span>
+                <span className="y-body" style={{ fontWeight: 600 }}>Choisir ce que tu veux faire progresser →</span>
+                <span className="y-label y-muted">Une langue, un sport, un projet, une relation… Dans Yiri, on appelle ça une Construction. Rien ne presse.</span>
               </Link>
-              <div className="y-section">
-                <div className="y-fil-attente" aria-hidden="true" />
-                <p className="y-caption y-muted">Ta trajectoire commencera à ta première trace.</p>
-              </div>
             </>
           )}
 
@@ -222,17 +220,13 @@ export default function TodayPage() {
                 </div>
                 <FilTraces traces={fil} aujourdhui={aujourdhui} />
                 {actions.length + observations.length === 1 && (
-                  <p className="y-quote y-muted">Ta première trace. C'est là que commence ta trajectoire.</p>
+                  <p className="y-label y-muted">C'est ta première trace. Tout ce que tu notes se retrouve ici et dans Trajectoire.</p>
                 )}
               </section>
               <Link to="/constructions?choisir=1" className="y-lien-carte">
-                <span className="y-caption y-muted">Si tu le souhaites</span>
-                <span className="y-body" style={{ fontWeight: 600 }}>Faire de quelque chose une Construction →</span>
-                <span className="y-label y-muted">
-                  {libres.length >= 3
-                    ? `Tu as noté ${libres.length} actions. Si l'une d'elles revient souvent, tu peux en faire une Construction. Ou continuer à noter librement.`
-                    : 'Une chose que tu choisis de faire évoluer dans le temps. Tu peux aussi continuer à noter librement.'}
-                </span>
+                <span className="y-caption y-muted">Quand tu seras prêt</span>
+                <span className="y-body" style={{ fontWeight: 600 }}>Choisir ce que tu veux faire progresser →</span>
+                <span className="y-label y-muted">Une langue, un sport, un projet, une relation… Dans Yiri, on appelle ça une Construction. Tu peux aussi continuer à noter sans.</span>
               </Link>
             </>
           )}

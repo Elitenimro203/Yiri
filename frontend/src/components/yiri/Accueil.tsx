@@ -16,8 +16,8 @@ export default function Accueil({ onCommencer }: { onCommencer: () => void }) {
             Yiri n'est pas là pour te dire <em>comment vivre</em>.
           </h1>
           <p className="y-body-lg y-muted">
-            Il t'aide à choisir ce qui mérite ton attention, à voir ce qui s'est réellement passé,
-            à comprendre ce que cela t'apprend, et à décider de la suite.
+            Tu y notes ce que tu fais et ce que tu remarques. Avec le temps, tu vois ce qui avance,
+            tu comprends ce qui marche pour toi, et tu décides de la suite.
           </p>
           <div className="y-accueil-fil" aria-hidden="true"><span /></div>
         </div>

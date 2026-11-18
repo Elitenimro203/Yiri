@@ -4,10 +4,25 @@ import { rattacherAction } from '../../api/actions';
 import type { Construction } from '../../api/constructions';
 import { libelleJourRelatif, jourCalendaire } from '../../lib/dates';
 
+// Jour calendaire décalé de n jours (AAAA-MM-JJ), sans passer par un fuseau.
+function ecartJour(jour: string, n: number): string {
+  const [a, m, j] = jour.split('-').map(Number);
+  const d = new Date(a, m - 1, j + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // Des Actions notées sans Construction. Yiri propose de les rattacher, sans
-// jamais l'exiger : elles restent valables telles quelles.
+// jamais l'exiger : elles restent valables telles quelles. Pour ne pas devenir
+// une « tâche en attente », la carte ne montre que la dernière semaine et peut
+// être masquée (elle ne revient que pour une Action notée après).
 
 const AFFICHEES = 3;
+const JOURS_RECENTS = 7;
+const CLE_MASQUEE = 'yiri.libresMasqueesJusquA';
+
+function lireMasque(): string | null {
+  try { return localStorage.getItem(CLE_MASQUEE); } catch { return null; }
+}
 
 export default function ActionsLibres({
   actions, constructions, aujourdhui, onRattachee,
@@ -19,7 +34,20 @@ export default function ActionsLibres({
 }) {
   const [enCours, setEnCours] = useState<number | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
-  if (actions.length === 0 || constructions.length === 0) return null;
+  const [masqueeJusquA, setMasqueeJusquA] = useState<string | null>(lireMasque);
+
+  const limite = ecartJour(aujourdhui, -JOURS_RECENTS);
+  const recentes = actions.filter((a) => {
+    const jour = jourCalendaire(a.date_action);
+    return jour !== null && jour >= limite && (masqueeJusquA === null || (a.date_action ?? '') > masqueeJusquA);
+  });
+  if (recentes.length === 0 || constructions.length === 0) return null;
+
+  function masquer() {
+    const repere = recentes.reduce((max, a) => ((a.date_action ?? '') > max ? a.date_action ?? '' : max), '');
+    try { localStorage.setItem(CLE_MASQUEE, repere); } catch { /* sans stockage, masqué pour cette visite */ }
+    setMasqueeJusquA(repere);
+  }
 
   async function rattacher(a: Action, idAxe: number) {
     setEnCours(a.id_entree);
@@ -36,12 +64,15 @@ export default function ActionsLibres({
 
   return (
     <section className="y-section y-carte-note" aria-labelledby="titre-libres">
-      <h2 id="titre-libres" className="y-title-card">Notées librement</h2>
+      <div className="y-section-head">
+        <h2 id="titre-libres" className="y-title-card">Notées sans Construction</h2>
+        <button type="button" className="y-btn y-btn-texte" onClick={masquer}>Masquer</button>
+      </div>
       <p className="y-caption y-muted">
-        {actions.length === 1 ? 'Une action' : `${actions.length} actions`} sans Construction. Tu peux les rattacher si l'une d'elles y correspond, ou les laisser telles quelles.
+        Si l'une d'elles fait partie de ce que tu fais progresser, tu peux la rattacher. Sinon, elle reste très bien comme ça.
       </p>
       <ul className="y-traj-fil" role="list">
-        {actions.slice(0, AFFICHEES).map((a) => {
+        {recentes.slice(0, AFFICHEES).map((a) => {
           const jour = jourCalendaire(a.date_action);
           return (
             <li key={a.id_entree} className="y-libre">

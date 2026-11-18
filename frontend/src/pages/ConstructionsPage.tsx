@@ -240,7 +240,7 @@ export default function ConstructionsPage() {
                 </button>
               ) : (
                 <div>
-                  <button type="button" className="y-btn y-btn-secondaire" onClick={() => setFormCreation((v) => !v)} aria-expanded={formCreation}>
+                  <button type="button" className="y-btn y-btn-secondaire" onClick={() => (formCreation && depuisAujourdhui ? naviguer('/today') : setFormCreation((v) => !v))} aria-expanded={formCreation}>
                     {formCreation ? 'Annuler' : '+ Choisir une chose à faire évoluer'}
                   </button>
                 </div>
@@ -251,17 +251,23 @@ export default function ConstructionsPage() {
                   <label className="y-section">
                     <span className="y-label y-muted">Son nom</span>
                     <input className="y-champ" value={nomCreation} onChange={(e) => setNomCreation(e.target.value)} placeholder="Ex. Anglais oral, Écriture, Ma relation avec mon frère…" autoFocus aria-describedby="aide-nom-construction" />
-                    <span id="aide-nom-construction" className="y-caption y-muted">Une capacité, une pratique, un projet, une œuvre, une relation… Pas besoin d'objectif chiffré.</span>
+                    <span id="aide-nom-construction" className="y-caption y-muted">Une langue, un sport, un projet, une relation… Ce que tu veux faire progresser, sans objectif chiffré.</span>
                   </label>
+                  {/* Première Construction : seulement son nom (une notion à la fois).
+                      L'Engagement reste disponible ensuite, sur sa page. */}
+                  {constructions.length > 0 && (
                   <label className="y-section">
                     <span className="y-label y-muted">Ce que tu acceptes de faire (facultatif)</span>
                     <input className="y-champ" value={engagementCreation} onChange={(e) => setEngagementCreation(e.target.value)} placeholder="Ex. 20 min de conversation, 3 fois par semaine" aria-describedby="aide-engagement-creation" />
                     <span id="aide-engagement-creation" className="y-caption y-muted">Tu pourras le préciser, le changer ou le suspendre à tout moment.</span>
                   </label>
+                  )}
+                  {constructions.length > 0 && (
                   <label className="y-section">
                     <span className="y-label y-muted">Pourquoi elle compte pour toi (facultatif)</span>
                     <textarea className="y-champ y-champ-zone" value={intentionCreation} onChange={(e) => setIntentionCreation(e.target.value)} />
                   </label>
+                  )}
                   {saisons.length > 0 && (
                     <label className="y-section">
                       <span className="y-label y-muted">Saison (facultatif)</span>

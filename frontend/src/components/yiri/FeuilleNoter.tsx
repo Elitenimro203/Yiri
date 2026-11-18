@@ -39,7 +39,7 @@ export default function FeuilleNoter({ onFermer }: { onFermer: () => void }) {
   const texte = contenu.trim();
   const peutEnregistrer = texte.length > 0;
   const aide = constructions.length === 0
-    ? "Pas besoin de Construction pour noter. Une trace peut exister seule."
+    ? "Pas besoin de tout organiser : note simplement ce qui s'est passé."
     : 'Pas besoin que ce soit parfait ni complet.';
 
   async function enregistrer() {
