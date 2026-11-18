@@ -79,3 +79,20 @@ def test_H_reflexion_sans_saison(client):
     r = client.post("/bilans", json={"type_decision": "ne_rien_changer"}, headers=headers)
     assert r.status_code == 201, r.text
     assert r.json()["id_programme"] is None
+
+
+def test_11b_aucun_score_pour_une_reflexion_moderne_rattachee(client):
+    """Mission 11b : même rattachée explicitement à une semaine, une Réflexion
+    créée par le flux moderne ne reçoit jamais de score en % (vision §20 :
+    pas de notation de soi). Les scores legacy déjà stockés restent en base."""
+    headers = enregistrer_et_connecter(client, "m11b")
+    saison, axe = _saison_avec_construction(client, headers)
+    client.put(f"/axes/{axe['id_axe']}/suivi/1/1", headers=headers)  # une case cochée : l'ancien calcul donnerait un score
+    r = client.post(
+        "/bilans",
+        json={"id_programme": saison["id_saison"], "semaine": 1, "remarque": "r", "type_decision": "continuer"},
+        headers=headers,
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["semaine"] == 1, "le rattachement choisi est conservé"
+    assert r.json()["score_snapshot"] is None

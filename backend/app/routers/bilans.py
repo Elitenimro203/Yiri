@@ -190,16 +190,18 @@ def creer_reflexion(
     if payload.id_axe is not None:
         _get_axe_ou_404(payload.id_axe, current_user, db)
 
-    # Score : uniquement calculable s'il y a un vrai Programme + semaine à
-    # regarder (§10 — pas de nouveau score inventé pour le flux libre).
-    score = _score_semaine(db, programme, payload.semaine) if (programme and payload.semaine) else None
+    # Mission 11b : le flux moderne ne calcule jamais de score, même quand la
+    # personne rattache explicitement sa Réflexion à une semaine (vision §20 :
+    # pas de notation de soi). Seule la route legacy Wakati
+    # (POST /programmes/{id}/bilans) calcule encore un score_snapshot, et les
+    # scores déjà stockés restent en base pour l'historique.
 
     bilan = Bilan(
         id_programme=payload.id_programme,
         id_utilisateur=current_user.id_utilisateur,
         id_axe=payload.id_axe,
         semaine=payload.semaine,
-        score_snapshot=score,
+        score_snapshot=None,
         ajustement_semaine_suivante=payload.ajustement_semaine_suivante,
         remarque=payload.remarque,
         comprehension=payload.comprehension,

@@ -235,9 +235,6 @@ export default function ReflectionsPage() {
             {programme && bilanSemaineCourante && (
               <article style={styles.card}>
                 <p style={styles.eyebrowSmall}>Semaine {bilanSemaineCourante.semaine} — déjà réfléchie</p>
-                {bilanSemaineCourante.score_snapshot !== null && (
-                  <p style={styles.scoreHistorique}>Score historique à la clôture : {bilanSemaineCourante.score_snapshot}%</p>
-                )}
                 {bilanSemaineCourante.remarque && <p style={styles.field}><strong>Ce que j'ai remarqué :</strong> {bilanSemaineCourante.remarque}</p>}
                 {bilanSemaineCourante.quoi_a_marche && <p style={styles.field}><strong>Ce qui a marché :</strong> {bilanSemaineCourante.quoi_a_marche}</p>}
                 {bilanSemaineCourante.quoi_n_a_pas_marche && <p style={styles.field}><strong>Ce qui n'a pas marché :</strong> {bilanSemaineCourante.quoi_n_a_pas_marche}</p>}
@@ -259,7 +256,6 @@ export default function ReflectionsPage() {
                     .map((b) => (
                       <div key={b.id_bilan} style={styles.historyItem}>
                         <span>Semaine {b.semaine}</span>
-                        <span style={styles.historyScore}>{b.score_snapshot !== null ? `${b.score_snapshot}%` : '—'}</span>
                         <span style={styles.historyDecision}>{libelleDecision(b)}</span>
                       </div>
                     ))}
@@ -305,7 +301,6 @@ const styles: Record<string, React.CSSProperties> = {
   card: { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 18 },
   cardTitle: { fontFamily: 'var(--serif)', fontSize: 19, margin: '0 0 18px' },
   contexteLigne: { fontSize: 13, color: 'var(--text)', margin: '0 0 14px' },
-  scoreHistorique: { color: 'var(--text-muted)', fontSize: 13, margin: '0 0 14px' },
   field: { fontSize: 13, color: 'var(--text)', margin: '0 0 8px', lineHeight: 1.5 },
   decisionTag: { fontSize: 12, color: 'var(--text-muted)', marginTop: 12 },
   label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 14 },
@@ -345,6 +340,5 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 14px', border: '1px solid var(--line)', background: 'var(--surface)', borderRadius: 10, fontSize: 13,
   },
   historyRow: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 },
-  historyScore: { color: 'var(--text-muted)', fontSize: 11.5 },
   historyDecision: { color: 'var(--text-muted)', fontSize: 11.5 },
 };
