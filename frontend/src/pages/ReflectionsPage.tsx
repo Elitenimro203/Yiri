@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
+import { useApparence } from '../design/apparence';
+import '../design/yiri-tokens.css';
+import '../design/yiri-ui.css';
+import { aujourdhuiLocal, libelleJourRelatif } from '../lib/dates';
 import {
   Programme,
   Bilan,
@@ -38,6 +42,8 @@ function libelleDecision(b: Bilan): string {
 }
 
 export default function ReflectionsPage() {
+  const [apparence] = useApparence();
+  const aujourdhui = aujourdhuiLocal();
   const [programme, setProgramme] = useState<Programme | null>(null);
   const [constructions, setConstructions] = useState<Construction[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
@@ -136,209 +142,144 @@ export default function ReflectionsPage() {
   }
 
   return (
-    <div style={styles.app}>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
-      <main className="page-main" style={styles.main}>
-        <p style={styles.eyebrow}>Ce que j'en apprends</p>
-        <h1 style={styles.h1}>Réflexions</h1>
-        <p style={styles.subtitle}>Ce qui s'est passé → ce que tu remarques → ce que tu en comprends → ce que tu décides.</p>
+      <main className="page-main yiri" data-yiri-theme={apparence.theme} style={{ flex: 1, width: '100%', padding: 0 }}>
+        <div className="y-page">
+          <header className="y-entete-page">
+            <p className="y-overline">Réflexions</p>
+            <h1 className="y-question">Qu'est-ce que tu en comprends&#8239;?</h1>
+            <p className="y-body y-muted">Ce qui s'est passé, ce que tu remarques, ce que tu en comprends, ce que tu décides.</p>
+          </header>
 
-        {chargement && <p style={{ color: 'var(--text-muted)' }}>Chargement…</p>}
-        {erreur && <p style={{ color: 'var(--error)' }}>{erreur}</p>}
+          {chargement && <p className="y-muted">Chargement…</p>}
+          {erreur && <p className="y-erreur" role="alert">{erreur}</p>}
 
-        {!chargement && (
-          <>
-            <article style={styles.card}>
-              <p style={styles.eyebrowSmall}>Ce qui s'est passé</p>
-              <p style={styles.contexteLigne}>
-                {nbActionsRealisees} action{nbActionsRealisees !== 1 ? 's' : ''} enregistrée{nbActionsRealisees !== 1 ? 's' : ''} cette semaine
-                {axeSelectionne ? ' pour cette Construction' : ''}.
-              </p>
-
-              <label style={styles.label}>
-                Construction concernée (facultatif)
-                <select
-                  value={axeSelectionne}
-                  onChange={(e) => setAxeSelectionne(e.target.value ? Number(e.target.value) : '')}
-                  style={styles.select}
-                >
-                  <option value="">— Aucune en particulier —</option>
-                  {constructions.map((c) => (
-                    <option key={c.id_construction} value={c.id_construction}>{c.nom}</option>
-                  ))}
-                </select>
-              </label>
-
-              {observations.length > 0 && (
-                <div style={{ marginTop: 10 }}>
-                  <small style={styles.observationsTitle}>Observations récentes</small>
-                  {observations.map((o) => (
-                    <p key={o.id_observation} style={styles.observationLine}>
-                      <small style={styles.observationDate}>
-                        {new Date(o.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                      </small>{' '}
-                      « {o.contenu} »
-                    </p>
-                  ))}
-                </div>
-              )}
-            </article>
-
-            <article style={styles.card}>
-              <h3 style={styles.cardTitle}>Ta réflexion</h3>
-
-              <label style={styles.label}>
-                Ce que je remarque
-                <textarea style={styles.textarea} value={remarque} onChange={(e) => setRemarque(e.target.value)} rows={2} />
-              </label>
-
-              <label style={styles.label}>
-                Ce que j'en comprends <small style={styles.hintInline}>(une interprétation provisoire, pas un diagnostic)</small>
-                <textarea style={styles.textarea} value={comprehension} onChange={(e) => setComprehension(e.target.value)} rows={2} />
-              </label>
-
-              <p style={styles.decisionLabel}>Ce que je décide</p>
-              <div style={styles.decisionGrid}>
-                {TYPES_DECISION.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTypeDecision(t)}
-                    style={{ ...styles.decisionBtn, ...(typeDecision === t ? styles.decisionBtnActive : {}) }}
+          {!chargement && (
+            <>
+              <section className="y-section" aria-labelledby="refl-passe">
+                <h2 id="refl-passe" className="y-overline y-muted">Ce qui s'est passé</h2>
+                <label className="y-label y-refl-champ">
+                  Construction concernée (facultatif)
+                  <select
+                    className="y-champ"
+                    value={axeSelectionne}
+                    onChange={(e) => setAxeSelectionne(e.target.value ? Number(e.target.value) : '')}
                   >
-                    {TYPE_DECISION_LABELS[t]}
-                  </button>
-                ))}
-              </div>
-
-              <label style={styles.label}>
-                Ce que je change (facultatif)
-                <textarea style={styles.textarea} value={changement} onChange={(e) => setChangement(e.target.value)} rows={2} />
-              </label>
-
-              {programme && !bilanSemaineCourante && (
-                <label style={styles.checkboxRow}>
-                  <input type="checkbox" checked={rattacherSemaine} onChange={(e) => setRattacherSemaine(e.target.checked)} />
-                  Rattacher à la semaine {programme.semaine_courante} en cours
-                </label>
-              )}
-              {programme && bilanSemaineCourante && (
-                <p style={styles.hint}>La semaine {programme.semaine_courante} a déjà sa réflexion — celle-ci sera libre.</p>
-              )}
-
-              <button onClick={handleSubmit} disabled={envoiEnCours || !typeDecision} style={styles.submitBtn}>
-                {envoiEnCours ? 'Enregistrement…' : 'Enregistrer la réflexion'}
-              </button>
-            </article>
-
-            {succes && <p style={{ color: 'var(--sprout)', fontSize: 13, marginTop: 8 }}>Réflexion enregistrée.</p>}
-
-            {programme && bilanSemaineCourante && (
-              <article style={styles.card}>
-                <p style={styles.eyebrowSmall}>Semaine {bilanSemaineCourante.semaine} — déjà réfléchie</p>
-                {bilanSemaineCourante.remarque && <p style={styles.field}><strong>Ce que j'ai remarqué :</strong> {bilanSemaineCourante.remarque}</p>}
-                {bilanSemaineCourante.quoi_a_marche && <p style={styles.field}><strong>Ce qui a marché :</strong> {bilanSemaineCourante.quoi_a_marche}</p>}
-                {bilanSemaineCourante.quoi_n_a_pas_marche && <p style={styles.field}><strong>Ce qui n'a pas marché :</strong> {bilanSemaineCourante.quoi_n_a_pas_marche}</p>}
-                {bilanSemaineCourante.comprehension && <p style={styles.field}><strong>Ce que j'en comprends :</strong> {bilanSemaineCourante.comprehension}</p>}
-                {bilanSemaineCourante.ajustement_semaine_suivante && <p style={styles.field}><strong>Ce que je change :</strong> {bilanSemaineCourante.ajustement_semaine_suivante}</p>}
-                <p style={styles.decisionTag}>Ce que j'ai décidé : {libelleDecision(bilanSemaineCourante)}</p>
-              </article>
-            )}
-
-            {bilansSemaine.length > 0 && (
-              <>
-                <div style={styles.sectionHead}>
-                  <p style={styles.eyebrow}>Historique</p>
-                  <h3 style={styles.h3}>Tes semaines précédentes</h3>
-                </div>
-                <div style={styles.historyList}>
-                  {bilansSemaine
-                    .filter((b) => b.semaine !== programme?.semaine_courante || bilanSemaineCourante)
-                    .map((b) => (
-                      <div key={b.id_bilan} style={styles.historyItem}>
-                        <span>Semaine {b.semaine}</span>
-                        <span style={styles.historyDecision}>{libelleDecision(b)}</span>
-                      </div>
+                    <option value="">Aucune en particulier</option>
+                    {constructions.map((c) => (
+                      <option key={c.id_construction} value={c.id_construction}>{c.nom}</option>
                     ))}
-                </div>
-              </>
-            )}
+                  </select>
+                </label>
+                <p className="y-body">
+                  {nbActionsRealisees} action{nbActionsRealisees !== 1 ? 's' : ''} notée{nbActionsRealisees !== 1 ? 's' : ''} cette semaine
+                  {axeSelectionne ? ' pour cette Construction' : ''}.
+                </p>
+                {observations.length > 0 && (
+                  <ul className="y-traj-fil" role="list" aria-label="Observations récentes">
+                    {observations.map((o) => (
+                      <li key={o.id_observation} className="y-trace">
+                        <span className="y-glyphe y-glyphe-observation" aria-hidden="true" />
+                        <span className="y-caption y-muted">{libelleJourRelatif(o.date_creation.slice(0, 10), aujourdhui)}</span>
+                        <span className="y-quote">« {o.contenu} »</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
 
-            {reflexionsLibres.length > 0 && (
-              <>
-                <div style={styles.sectionHead}>
-                  <p style={styles.eyebrow}>Réflexions libres</p>
-                  <h3 style={styles.h3}>Pas rattachées à une semaine</h3>
+              <section className="y-section y-carte-note" aria-labelledby="refl-ta">
+                <h2 id="refl-ta" className="y-title-card">Ta réflexion</h2>
+
+                <label className="y-label y-refl-champ">
+                  Ce que je remarque
+                  <textarea className="y-champ y-champ-zone" value={remarque} onChange={(e) => setRemarque(e.target.value)} rows={2} />
+                </label>
+
+                <label className="y-label y-refl-champ">
+                  Ce que j'en comprends
+                  <span className="y-caption y-muted">Une interprétation provisoire, pas un diagnostic.</span>
+                  <textarea className="y-champ y-champ-zone" value={comprehension} onChange={(e) => setComprehension(e.target.value)} rows={2} />
+                </label>
+
+                <div className="y-refl-champ">
+                  <p className="y-label" id="refl-decide">Ce que je décide</p>
+                  <div className="y-puces" role="radiogroup" aria-labelledby="refl-decide">
+                    {TYPES_DECISION.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        role="radio"
+                        aria-checked={typeDecision === t}
+                        className="y-puce"
+                        onClick={() => setTypeDecision(t)}
+                      >
+                        {TYPE_DECISION_LABELS[t]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div style={styles.historyList}>
-                  {reflexionsLibres.map((r) => (
-                    <div key={r.id_bilan} style={styles.historyItemLibre}>
-                      <div style={styles.historyRow}>
-                        <small style={styles.observationDate}>
-                          {new Date(r.date_creation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                        </small>
-                        <span style={styles.historyDecision}>{libelleDecision(r)}</span>
-                      </div>
-                      {r.remarque && <p style={styles.field}>{r.remarque}</p>}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
+
+                <label className="y-label y-refl-champ">
+                  Ce que je change (facultatif)
+                  <textarea className="y-champ y-champ-zone" value={changement} onChange={(e) => setChangement(e.target.value)} rows={2} />
+                </label>
+
+                {programme && !bilanSemaineCourante && (
+                  <label className="y-caption y-refl-case">
+                    <input type="checkbox" checked={rattacherSemaine} onChange={(e) => setRattacherSemaine(e.target.checked)} />
+                    Rattacher à la semaine {programme.semaine_courante} du programme Wakati
+                  </label>
+                )}
+                {programme && bilanSemaineCourante && (
+                  <p className="y-caption y-muted">La semaine {programme.semaine_courante} a déjà sa réflexion. Celle-ci sera libre.</p>
+                )}
+
+                <button type="button" className="y-btn y-btn-principal" onClick={handleSubmit} disabled={envoiEnCours || !typeDecision}>
+                  {envoiEnCours ? 'Enregistrement…' : 'Enregistrer la réflexion'}
+                </button>
+                {!typeDecision && <p className="y-caption y-muted">Choisis ce que tu décides pour enregistrer.</p>}
+                {succes && <p className="y-caption" role="status">Réflexion enregistrée.</p>}
+              </section>
+
+              {reflexionsLibres.length > 0 && (
+                <section className="y-section" aria-labelledby="refl-libres">
+                  <h2 id="refl-libres" className="y-overline y-muted">Tes réflexions</h2>
+                  <ul className="y-traj-fil" role="list">
+                    {reflexionsLibres.map((r) => (
+                      <li key={r.id_bilan} className="y-trace">
+                        <span className="y-glyphe y-glyphe-reflexion" aria-hidden="true" />
+                        <span className="y-caption y-muted">{libelleJourRelatif(r.date_creation.slice(0, 10), aujourdhui)}</span>
+                        <span className="y-refl-entree">
+                          <span className="y-body">{libelleDecision(r)}</span>
+                          {r.remarque && <span className="y-quote">« {r.remarque} »</span>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {programme && bilansSemaine.length > 0 && (
+                <details className="y-details">
+                  <summary className="y-label">Historique Wakati · {bilansSemaine.length} semaine{bilansSemaine.length > 1 ? 's' : ''}</summary>
+                  <ul className="y-traj-fil" role="list">
+                    {bilansSemaine.map((b) => (
+                      <li key={b.id_bilan} className="y-refl-wakati">
+                        <span className="y-body">Semaine {b.semaine} · {libelleDecision(b)}</span>
+                        {b.remarque && <span className="y-caption y-muted">{b.remarque}</span>}
+                        {b.comprehension && <span className="y-caption y-muted">Compris : {b.comprehension}</span>}
+                        {b.ajustement_semaine_suivante && <span className="y-caption y-muted">Changé : {b.ajustement_semaine_suivante}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </>
+          )}
+        </div>
       </main>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  app: { display: 'flex', minHeight: '100vh' },
-  main: { flex: 1, maxWidth: 720, margin: '0 auto', padding: '28px 36px 60px', width: '100%' },
-  eyebrow: { fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--sprout)', fontWeight: 700, margin: 0 },
-  eyebrowSmall: { fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, margin: '0 0 8px' },
-  h1: { fontFamily: 'var(--serif)', fontSize: 27, margin: '6px 0 4px' },
-  subtitle: { color: 'var(--text-muted)', fontSize: 13, margin: '0 0 24px' },
-  card: { background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', padding: 24, marginBottom: 18 },
-  cardTitle: { fontFamily: 'var(--serif)', fontSize: 19, margin: '0 0 18px' },
-  contexteLigne: { fontSize: 13, color: 'var(--text)', margin: '0 0 14px' },
-  field: { fontSize: 13, color: 'var(--text)', margin: '0 0 8px', lineHeight: 1.5 },
-  decisionTag: { fontSize: 12, color: 'var(--text-muted)', marginTop: 12 },
-  label: { display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 14 },
-  hintInline: { fontWeight: 400, fontStyle: 'italic' },
-  hint: { color: 'var(--text-muted)', fontSize: 11.5, margin: '0 0 14px', fontStyle: 'italic' },
-  select: {
-    background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px',
-    color: 'var(--text)', fontSize: 13,
-  },
-  textarea: {
-    background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 8, padding: 10,
-    color: 'var(--text)', fontSize: 13, fontFamily: 'inherit', resize: 'vertical',
-  },
-  observationsTitle: { fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 700 },
-  observationLine: { margin: '8px 0 0', fontSize: 12.5, color: 'var(--text)', fontStyle: 'italic' },
-  observationDate: { color: 'var(--text-muted)', fontStyle: 'normal', fontSize: 10.5 },
-  decisionLabel: { fontSize: 12.5, color: 'var(--text-muted)', margin: '0 0 8px' },
-  decisionGrid: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  decisionBtn: {
-    padding: '8px 14px', border: '1px solid var(--line)', background: 'var(--bg)', borderRadius: 8,
-    color: 'var(--text)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
-  },
-  decisionBtnActive: { borderColor: 'var(--sprout-dim)', background: 'var(--surface-2)', color: 'var(--sprout)' },
-  checkboxRow: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-muted)', margin: '0 0 16px' },
-  submitBtn: {
-    width: '100%', background: 'var(--sprout)', color: '#161D14', border: 'none', borderRadius: 8,
-    padding: 12, fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
-  },
-  sectionHead: { margin: '30px 2px 12px' },
-  h3: { margin: 0, fontSize: 16 },
-  historyList: { display: 'flex', flexDirection: 'column', gap: 8 },
-  historyItem: {
-    display: 'flex', justifyContent: 'space-between', padding: '10px 14px',
-    border: '1px solid var(--line)', background: 'var(--surface)', borderRadius: 10, fontSize: 13,
-  },
-  historyItemLibre: {
-    padding: '10px 14px', border: '1px solid var(--line)', background: 'var(--surface)', borderRadius: 10, fontSize: 13,
-  },
-  historyRow: { display: 'flex', justifyContent: 'space-between', marginBottom: 4 },
-  historyDecision: { color: 'var(--text-muted)', fontSize: 11.5 },
-};
