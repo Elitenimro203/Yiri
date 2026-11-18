@@ -21,6 +21,7 @@ import { ApiError } from '../api/client';
 import { aujourdhuiLocal } from '../lib/dates';
 import { construireFil, type DecisionPourFil } from '../lib/traces';
 import { LIBELLES_STATUT } from '../lib/constructions';
+import { useTraceAjoutee } from '../lib/evenements';
 
 // Design 2a — tout ce qui concerne UNE Construction : ce que j'accepte de
 // faire (Engagements), ce qui s'est passé (Actions, Observations, Décisions),
@@ -84,6 +85,8 @@ export default function ConstructionDetailPage() {
     setObservations(o);
     setReflexions(r.filter((b) => b.id_axe === idConstruction));
   }, [idConstruction]);
+
+  useTraceAjoutee(() => { chargerTraces().catch(() => {}); });
 
   useEffect(() => {
     async function charger() {

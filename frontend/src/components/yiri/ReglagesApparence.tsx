@@ -1,4 +1,7 @@
+import { Link } from 'react-router-dom';
 import { THEMES, type Apparence } from '../../design/apparence';
+import { useAuth } from '../../context/AuthContext';
+import Icone from './Icone';
 
 interface Props {
   apparence: Apparence;
@@ -8,8 +11,9 @@ interface Props {
 // Choix du thème (fond × accent) et de l'intensité. Préférence de ce
 // navigateur uniquement, sans effet sur les données.
 export default function ReglagesApparence({ apparence, onChange }: Props) {
+  const { deconnecter } = useAuth();
   return (
-    <section className="y-reglages" aria-label="Apparence">
+    <section className="y-reglages" aria-label="Réglages">
       <div className="y-section">
         <p className="y-overline y-muted">Thème</p>
         <div className="y-pastilles">
@@ -40,6 +44,10 @@ export default function ReglagesApparence({ apparence, onChange }: Props) {
             Affirmée
           </button>
         </div>
+      </div>
+      <div className="y-actions-ligne">
+        <Link to="/reminders" className="y-btn y-btn-secondaire"><Icone nom="rappels" /> Rappels</Link>
+        <button type="button" className="y-btn y-btn-texte" onClick={deconnecter}><Icone nom="sortir" /> Se déconnecter</button>
       </div>
     </section>
   );

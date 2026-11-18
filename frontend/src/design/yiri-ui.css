@@ -151,3 +151,39 @@
 .yiri .y-lien-carte { color: var(--y-ink); }
 .y-form-ligne > label { min-width: 0; max-width: 100%; }
 .y-champ-petit { max-width: 100%; text-overflow: ellipsis; }
+
+/* ---------- Navigation (Design 2b) ---------- */
+.y-nav-racine { min-height: 0; background: transparent; }
+.y-rail { position: sticky; top: 0; height: 100vh; width: var(--sidebar-w, 224px); flex-shrink: 0; display: flex; flex-direction: column; gap: var(--y-space-5); padding: 28px 16px 20px; background: var(--y-bg); border-right: 1px solid var(--y-line); }
+.y-rail-marque { padding: 0 10px; font-family: var(--y-font-display); font-style: italic; font-weight: 400; font-size: 28px; color: var(--y-ink); }
+.y-rail-noter { align-self: stretch; }
+.y-rail-nav { display: flex; flex-direction: column; gap: 2px; }
+.yiri .y-rail-lien { min-height: var(--y-touch-min); display: flex; align-items: center; gap: 12px; padding: 0 12px; border-radius: var(--y-radius-md); border: none; background: transparent; color: var(--y-ink-muted); font: 500 15px var(--y-font-sans); text-decoration: none; cursor: pointer; text-align: left; }
+.yiri .y-rail-lien:hover { background: var(--y-surface); color: var(--y-ink); }
+.yiri .y-rail-lien.active { background: var(--y-surface); color: var(--y-ink); font-weight: 600; }
+.y-rail-bas { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: var(--y-space-4); border-top: 1px solid var(--y-line); }
+.y-rail-nom { padding: 8px 12px 0; }
+.y-barre { display: none; }
+
+@media (max-width: 720px) {
+  .y-rail { display: none; }
+  .y-barre { position: fixed; left: 14px; right: 14px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 60; display: flex; align-items: center; gap: 10px; }
+  .y-barre::before { content: ''; position: fixed; left: 0; right: 0; bottom: 0; height: 130px; z-index: -1; pointer-events: none; background: linear-gradient(180deg, transparent 0%, var(--y-bg) 62%); }
+  .y-barre-verre { flex: 1; display: flex; gap: 2px; padding: 5px; border-radius: var(--y-radius-pill); background: var(--y-glass); -webkit-backdrop-filter: blur(22px) saturate(180%); backdrop-filter: blur(22px) saturate(180%); border: 1px solid var(--y-glass-border); box-shadow: var(--y-shadow-float); }
+  .yiri .y-barre-onglet { flex: 1; min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: var(--y-radius-pill); color: var(--y-ink-muted); text-decoration: none; }
+  .yiri .y-barre-onglet .y-tab { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .yiri .y-barre-onglet.active { background: var(--y-surface); color: var(--y-ink); }
+  .yiri .y-barre-onglet.active .y-tab { font-weight: 600; }
+  .y-fab { flex: 0 0 var(--y-fab); width: var(--y-fab); height: var(--y-fab); display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: var(--y-accent); color: var(--y-on-accent); box-shadow: var(--y-shadow-float); cursor: pointer; }
+  .page-main { padding-bottom: 120px !important; }
+}
+
+/* ---------- Feuille « Noter » ---------- */
+.y-voile { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center; background: rgba(17, 18, 20, 0.45); }
+.y-feuille { position: relative; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--y-space-5); padding: 12px var(--y-space-6) calc(28px + env(safe-area-inset-bottom)); border-radius: var(--y-radius-sheet) var(--y-radius-sheet) 0 0; background: var(--y-bg); color: var(--y-ink); box-shadow: var(--y-shadow-sheet); }
+@media (min-width: 721px) { .y-voile { align-items: center; } .y-feuille { border-radius: var(--y-radius-sheet); } }
+.y-feuille-poignee { align-self: center; width: 40px; height: 5px; border-radius: 3px; background: var(--y-line); }
+.y-feuille-haut { display: flex; justify-content: space-between; align-items: center; }
+.y-puces { display: flex; flex-wrap: wrap; gap: var(--y-space-2); }
+.y-puce { min-height: var(--y-touch-min); padding: 0 14px; border-radius: var(--y-radius-pill); border: 1px solid var(--y-line); background: var(--y-bg); color: var(--y-ink); font: 500 14px var(--y-font-sans); cursor: pointer; }
+.y-puce[aria-pressed='true'] { border: 1.5px solid var(--y-ink); background: var(--y-surface); font-weight: 600; }

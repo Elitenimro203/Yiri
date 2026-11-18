@@ -29,7 +29,7 @@ export default function EnTeteJour({ date, intensite, saison, reglagesOuverts, o
         <button
           type="button"
           className="y-icone-btn"
-          aria-label="Apparence"
+          aria-label="Réglages"
           aria-expanded={reglagesOuverts}
           onClick={onReglages}
         >

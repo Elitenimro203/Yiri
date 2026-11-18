@@ -17,6 +17,7 @@ import { Bilan, TypeDecision, listerMesReflexions } from '../api/programmes';
 import { aujourdhuiLocal } from '../lib/dates';
 import { construireFil, derniereTrace, type DecisionPourFil } from '../lib/traces';
 import { choisirPhraseDuJour } from '../lib/phraseDuJour';
+import { useTraceAjoutee } from '../lib/evenements';
 
 // Nombre maximum de Constructions mises en avant dans "Aujourd'hui" — au-delà,
 // on renvoie vers la page Constructions plutôt que de tout entasser ici.
@@ -69,6 +70,9 @@ export default function TodayPage() {
     setActions(a);
     setObservations(o);
   }
+
+  // Une trace notée depuis la feuille « Noter » (bouton +) apparaît aussitôt.
+  useTraceAjoutee(() => { chargerActionsEtObservations().catch(() => {}); });
 
   useEffect(() => {
     getSaisonActive().then(setSaisonActive).catch(() => {});
