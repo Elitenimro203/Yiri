@@ -1,0 +1,24 @@
+# Déploiement du backend Yiri sur Render (Blueprint).
+# Frontend : reste sur Vercel. Base de données : Neon (Postgres gratuit).
+#
+# Dans Render : New + → Blueprint → choisir ce dépôt. Render lit ce fichier
+# et demande les valeurs marquées `sync: false`.
+services:
+  - type: web
+    name: yiri-api
+    runtime: python
+    plan: free            # se met en veille après 15 min sans trafic ; ~1 min au réveil
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true      # redéploie à chaque push sur la branche suivie
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATABASE_URL
+        sync: false       # l'adresse de connexion Neon (postgresql://…?sslmode=require)
+      - key: ALLOWED_ORIGINS
+        sync: false       # l'adresse du frontend Vercel, ex. https://yiri.vercel.app
+      - key: SECRET_KEY
+        generateValue: true
