@@ -9,7 +9,7 @@ from app.core.migrations import (
     faire_evoluer_bilans_vers_reflexion,
     faire_evoluer_programme_vers_saison,
     faire_evoluer_axe_vers_construction,
-    faire_evoluer_entrees_suivi_vers_action,
+    faire_evoluer_entrees_suivi_vers_action, ouvrir_action_sans_construction,
 )
 from app.core.scheduler import demarrer_scheduler, arreter_scheduler
 from app import models  # noqa: F401 — nécessaire pour que Base.metadata voie toutes les tables
@@ -50,6 +50,8 @@ def on_startup():
     # Mission 6 : EntreeSuivi apprend à représenter une Action réelle
     # (date_action/contenu ajoutés, semaine/jour assouplis).
     faire_evoluer_entrees_suivi_vers_action(engine)
+    # Premiers jours : une Action peut exister sans Construction (provisoire).
+    ouvrir_action_sans_construction(engine)
     demarrer_scheduler()
 
 

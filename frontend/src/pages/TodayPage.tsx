@@ -17,7 +17,10 @@ import { Bilan, TypeDecision, listerMesReflexions } from '../api/programmes';
 import { aujourdhuiLocal } from '../lib/dates';
 import { construireFil, derniereTrace, type DecisionPourFil } from '../lib/traces';
 import { choisirPhraseDuJour } from '../lib/phraseDuJour';
-import { useTraceAjoutee } from '../lib/evenements';
+import { useTraceAjoutee, ouvrirNoter } from '../lib/evenements';
+import { etapeDebut, actionsLibres, accueilDejaVu, marquerAccueilVu } from '../lib/premiersJours';
+import Accueil from '../components/yiri/Accueil';
+import ActionsLibres from '../components/yiri/ActionsLibres';
 
 // Nombre maximum de Constructions mises en avant dans "Aujourd'hui" — au-delà,
 // on renvoie vers la page Constructions plutôt que de tout entasser ici.
@@ -51,6 +54,8 @@ export default function TodayPage() {
   const [observations, setObservations] = useState<Observation[]>([]);
   const [reflexions, setReflexions] = useState<Bilan[]>([]);
   const [chargement, setChargement] = useState(true);
+  const [tracesChargees, setTracesChargees] = useState(false);
+  const [accueilVu, setAccueilVu] = useState(accueilDejaVu);
   const [erreur, setErreur] = useState<string | null>(null);
 
   const [nouvelleObservation, setNouvelleObservation] = useState('');
@@ -69,6 +74,7 @@ export default function TodayPage() {
     ]);
     setActions(a);
     setObservations(o);
+    setTracesChargees(true);
   }
 
   // Une trace notée depuis la feuille « Noter » (bouton +) apparaît aussitôt.
@@ -156,6 +162,12 @@ export default function TodayPage() {
   );
   const fil = construireFil(actions, observations, decisions, TRACES_AFFICHEES);
   const phrase = choisirPhraseDuJour({ aujourdhui, saison: saisonActive, observations });
+  // Premiers jours : l'état se déduit des données réelles, une fois tout chargé.
+  const pret = !chargement && tracesChargees;
+  const etape = etapeDebut(constructions, actions, observations);
+  const libres = actionsLibres(actions);
+  const constructionsOuvertes = constructions.filter((c) => c.statut !== 'terminee' && c.statut !== 'abandonnee');
+  const afficherAccueil = pret && etape === 'vide' && !accueilVu;
 
   return (
     <div style={styles.app}>
@@ -176,82 +188,134 @@ export default function TodayPage() {
           />
 
           {reglagesOuverts && <ReglagesApparence apparence={apparence} onChange={changerApparence} />}
+          {afficherAccueil && <Accueil onCommencer={() => { marquerAccueilVu(); setAccueilVu(true); }} />}
 
-          <section className="y-phrase" aria-label="Phrase du jour">
-            <p className="y-caption">{phrase.titre}</p>
-            <p className="y-phrase-texte">{phrase.texte}</p>
-          </section>
-
-          {chargement && <p className="y-muted">Chargement…</p>}
           {erreur && <p className="y-erreur" role="alert">{erreur}</p>}
+          {!pret && <p className="y-muted">Chargement…</p>}
 
-          {!chargement && (
-            <section className="y-section" aria-labelledby="titre-constructions">
-              <div className="y-section-head">
-                <h2 id="titre-constructions" className="y-overline">Ce que tu fais évoluer</h2>
-                {constructions.length > 0 && <Link to="/constructions" className="y-lien">Tout voir →</Link>}
-              </div>
-
-              {constructionsMisesEnAvant.length === 0 ? (
-                <Link to="/constructions" className="y-carte-note" style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <span className="y-caption y-muted">Quand tu seras prêt</span>
-                  <span className="y-body" style={{ fontWeight: 600 }}>Choisir une chose à faire évoluer →</span>
-                  <span className="y-label y-muted">
-                    Une capacité, une pratique, un projet, une relation… Rien ne presse : tu peux aussi noter librement ce que tu remarques.
-                  </span>
-                </Link>
-              ) : (
-                constructionsMisesEnAvant.map((c, i) => (
-                  <CarteConstruction
-                    key={c.id_construction}
-                    construction={c}
-                    index={i}
-                    engagements={engagementsParConstruction[c.id_construction] ?? []}
-                    derniereTrace={derniereTrace(actions, c.id_construction)}
-                    aujourdhui={aujourdhui}
-                    ouverte={formulaireOuvertPour === c.id_construction}
-                    onBasculer={() => setFormulaireOuvertPour((id) => (id === c.id_construction ? null : c.id_construction))}
-                    onEnregistrer={(saisie) => handleEnregistrerAction(c.id_construction, saisie)}
-                    envoiEnCours={envoiActionEnCours}
-                  />
-                ))
-              )}
-            </section>
+          {pret && etape === 'vide' && (
+            <>
+              {/* Une seule question (le titre, qui donne le sens) ; la carte
+                  dit concrètement quoi faire, exemples à l'appui. */}
+              <section className="y-premier" aria-labelledby="titre-premier">
+                <p className="y-overline y-muted">Pour commencer</p>
+                <h2 id="titre-premier" className="y-premier-consigne">Note une chose que tu as faite ou remarquée aujourd'hui. Même petite.</h2>
+                <p className="y-label y-muted">Par exemple : « Lu 20 pages de mon livre » ou « Je me concentre mieux le matin ».</p>
+                <div><button type="button" className="y-btn y-btn-principal" onClick={ouvrirNoter}>Noter</button></div>
+              </section>
+              <Link to="/constructions?choisir=1" className="y-lien-carte">
+                <span className="y-caption y-muted">Quand tu seras prêt</span>
+                <span className="y-body" style={{ fontWeight: 600 }}>Choisir ce que tu veux faire progresser →</span>
+                <span className="y-label y-muted">Une langue, un sport, un projet, une relation… Dans Yiri, on appelle ça une Construction. Rien ne presse.</span>
+              </Link>
+            </>
           )}
 
-          <section className="y-section" aria-labelledby="titre-fil">
-            <div className="y-section-head">
-              <h2 id="titre-fil" className="y-overline">Ce qui s'est réellement passé</h2>
-              <Link to="/trajectory" className="y-lien">Relire ta trajectoire →</Link>
-            </div>
-            <FilTraces traces={fil} aujourdhui={aujourdhui} />
-          </section>
+          {pret && etape === 'premieresTraces' && (
+            <>
+              <section className="y-section" aria-labelledby="titre-fil">
+                <div className="y-section-head">
+                  <h2 id="titre-fil" className="y-overline">Ce qui s'est réellement passé</h2>
+                  <Link to="/trajectory" className="y-lien">Trajectoire →</Link>
+                </div>
+                <FilTraces traces={fil} aujourdhui={aujourdhui} />
+                {actions.length + observations.length === 1 && (
+                  <p className="y-label y-muted">C'est ta première trace. Tout ce que tu notes se retrouve ici et dans Trajectoire.</p>
+                )}
+              </section>
+              <Link to="/constructions?choisir=1" className="y-lien-carte">
+                <span className="y-caption y-muted">Quand tu seras prêt</span>
+                <span className="y-body" style={{ fontWeight: 600 }}>Choisir ce que tu veux faire progresser →</span>
+                <span className="y-label y-muted">Une langue, un sport, un projet, une relation… Dans Yiri, on appelle ça une Construction. Tu peux aussi continuer à noter sans.</span>
+              </Link>
+            </>
+          )}
 
-          <section className="y-carte-note" aria-labelledby="titre-observation">
-            <h2 id="titre-observation" className="y-title-card">Qu'as-tu remarqué&#8239;?</h2>
-            <label>
-              <span className="y-sr">Ce que tu as remarqué</span>
-              <input
-                className="y-champ"
-                type="text"
-                value={nouvelleObservation}
-                onChange={(e) => setNouvelleObservation(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAjouterObservation()}
-                placeholder="Un fait, un écart, une surprise…"
-              />
-            </label>
-            <div className="y-form-ligne">
-              <button
-                type="button"
-                className="y-btn y-btn-principal"
-                onClick={handleAjouterObservation}
-                disabled={envoiObservationEnCours || !nouvelleObservation.trim()}
-              >
-                Noter
-              </button>
-              <span className="y-caption y-muted">Pas besoin que ce soit parfait ni complet.</span>
-            </div>
-          </section>
+          {pret && etape === 'installe' && (
+            <>
+            <section className="y-phrase" aria-label="Phrase du jour">
+              <p className="y-caption">{phrase.titre}</p>
+              <p className="y-phrase-texte">{phrase.texte}</p>
+            </section>
+
+
+            {(
+              <section className="y-section" aria-labelledby="titre-constructions">
+                <div className="y-section-head">
+                  <h2 id="titre-constructions" className="y-overline">Ce que tu fais évoluer</h2>
+                  {constructions.length > 0 && <Link to="/constructions" className="y-lien">Tout voir →</Link>}
+                </div>
+
+                {constructionsMisesEnAvant.length === 0 ? (
+                  <Link to="/constructions" className="y-carte-note" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <span className="y-caption y-muted">Quand tu seras prêt</span>
+                    <span className="y-body" style={{ fontWeight: 600 }}>Choisir une chose à faire évoluer →</span>
+                    <span className="y-label y-muted">
+                      Une capacité, une pratique, un projet, une relation… Rien ne presse : tu peux aussi noter librement ce que tu remarques.
+                    </span>
+                  </Link>
+                ) : (
+                  constructionsMisesEnAvant.map((c, i) => (
+                    <CarteConstruction
+                      key={c.id_construction}
+                      construction={c}
+                      index={i}
+                      engagements={engagementsParConstruction[c.id_construction] ?? []}
+                      derniereTrace={derniereTrace(actions, c.id_construction)}
+                      aujourdhui={aujourdhui}
+                      ouverte={formulaireOuvertPour === c.id_construction}
+                      onBasculer={() => setFormulaireOuvertPour((id) => (id === c.id_construction ? null : c.id_construction))}
+                      onEnregistrer={(saisie) => handleEnregistrerAction(c.id_construction, saisie)}
+                      envoiEnCours={envoiActionEnCours}
+                    />
+                  ))
+                )}
+              </section>
+            )}
+
+            <section className="y-section" aria-labelledby="titre-fil">
+              <div className="y-section-head">
+                <h2 id="titre-fil" className="y-overline">Ce qui s'est réellement passé</h2>
+                <Link to="/trajectory" className="y-lien">Trajectoire →</Link>
+              </div>
+              <FilTraces traces={fil} aujourdhui={aujourdhui} />
+            </section>
+
+            <ActionsLibres
+              actions={libres}
+              constructions={constructionsOuvertes}
+              aujourdhui={aujourdhui}
+              onRattachee={() => { chargerActionsEtObservations().catch(() => {}); }}
+            />
+
+            <section className="y-carte-note" aria-labelledby="titre-observation">
+              <h2 id="titre-observation" className="y-title-card">Qu'as-tu remarqué&#8239;?</h2>
+              <label>
+                <span className="y-sr">Ce que tu as remarqué</span>
+                <input
+                  className="y-champ"
+                  type="text"
+                  value={nouvelleObservation}
+                  onChange={(e) => setNouvelleObservation(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAjouterObservation()}
+                  placeholder="Un fait, un écart, une surprise…"
+                />
+              </label>
+              <div className="y-form-ligne">
+                <button
+                  type="button"
+                  className="y-btn y-btn-principal"
+                  onClick={handleAjouterObservation}
+                  disabled={envoiObservationEnCours || !nouvelleObservation.trim()}
+                >
+                  Noter
+                </button>
+                <span className="y-caption y-muted">Pas besoin que ce soit parfait ni complet.</span>
+              </div>
+            </section>
+
+            </>
+          )}
 
           {reflexions.length > 0 && (
             <Link to="/reflections" className="y-lien">Voir tes réflexions →</Link>

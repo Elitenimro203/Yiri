@@ -18,3 +18,21 @@ export function useTraceAjoutee(rappel: () => void): void {
     return () => window.removeEventListener(TRACE_AJOUTEE, ecouteur);
   }, []);
 }
+
+// Ouvrir la feuille « Noter » depuis n'importe quelle page (ex. le bouton
+// « Noter » du premier jour), sans remonter d'état jusqu'à la navigation.
+const OUVRIR_NOTER = 'yiri:ouvrir-noter';
+
+export function ouvrirNoter(): void {
+  window.dispatchEvent(new Event(OUVRIR_NOTER));
+}
+
+export function useOuvrirNoter(rappel: () => void): void {
+  const ref = useRef(rappel);
+  ref.current = rappel;
+  useEffect(() => {
+    const ecouteur = () => ref.current();
+    window.addEventListener(OUVRIR_NOTER, ecouteur);
+    return () => window.removeEventListener(OUVRIR_NOTER, ecouteur);
+  }, []);
+}

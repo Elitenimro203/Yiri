@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import CarteConstruction from '../components/yiri/CarteConstruction';
 import { useApparence } from '../design/apparence';
@@ -6,7 +7,7 @@ import '../design/yiri-tokens.css';
 import '../design/yiri-ui.css';
 import { Saison, getSaisonActive, listerSaisons, creerSaison, modifierSaison, terminerSaison } from '../api/seasons';
 import { Construction, listerConstructions, creerConstruction } from '../api/constructions';
-import { Engagement, listerEngagements } from '../api/engagements';
+import { Engagement, listerEngagements, creerEngagement } from '../api/engagements';
 import { Action, listerActions } from '../api/actions';
 import { ApiError } from '../api/client';
 import { aujourdhuiLocal } from '../lib/dates';
@@ -25,6 +26,11 @@ function messageErreur(e: unknown, defaut: string): string {
 
 export default function ConstructionsPage() {
   const [apparence] = useApparence();
+  // Venue depuis « Aujourd'hui » (premiers jours) : le formulaire s'ouvre
+  // directement, et l'on y retourne une fois la Construction choisie.
+  const [params] = useSearchParams();
+  const depuisAujourdhui = params.get('choisir') === '1';
+  const naviguer = useNavigate();
   const aujourdhui = aujourdhuiLocal();
 
   const [saisonActive, setSaisonActive] = useState<Saison | null>(null);
@@ -43,7 +49,8 @@ export default function ConstructionsPage() {
   const [envoiSaison, setEnvoiSaison] = useState(false);
 
   // Construction : création
-  const [formCreation, setFormCreation] = useState(false);
+  const [formCreation, setFormCreation] = useState(depuisAujourdhui);
+  const [engagementCreation, setEngagementCreation] = useState('');
   const [nomCreation, setNomCreation] = useState('');
   const [intentionCreation, setIntentionCreation] = useState('');
   const [saisonCreation, setSaisonCreation] = useState<number | ''>('');
@@ -118,12 +125,20 @@ export default function ConstructionsPage() {
     setEnvoiCreation(true);
     setErreur(null);
     try {
-      await creerConstruction({
+      const creee = await creerConstruction({
         nom: nomCreation.trim(),
         intention: intentionCreation.trim() || null,
         id_saison: saisonCreation === '' ? null : saisonCreation,
       });
+      if (engagementCreation.trim()) {
+        await creerEngagement(creee.id_construction, { description: engagementCreation.trim(), date_debut: aujourdhui });
+      }
+      if (depuisAujourdhui) {
+        naviguer('/today');
+        return;
+      }
       setNomCreation('');
+      setEngagementCreation('');
       setIntentionCreation('');
       setSaisonCreation('');
       setFormCreation(false);
@@ -162,7 +177,8 @@ export default function ConstructionsPage() {
 
           {!chargement && (
             <>
-              {/* ---- Saison ---- */}
+              {/* ---- Saison ---- (attend la première Construction : une notion à la fois) */}
+              {(saisonActive || formSaison || constructions.length > 0) && (
               <section className="y-section" aria-labelledby="titre-saison">
                 <h2 id="titre-saison" className="y-overline y-muted">Saison</h2>
                 {formSaison ? (
@@ -213,6 +229,7 @@ export default function ConstructionsPage() {
                   </div>
                 )}
               </section>
+              )}
 
               {/* ---- Constructions ---- */}
               {constructions.length === 0 && !formCreation ? (
@@ -221,10 +238,10 @@ export default function ConstructionsPage() {
                   <span className="y-body" style={{ fontWeight: 600 }}>Choisir une chose à faire évoluer →</span>
                   <span className="y-label y-muted">Une capacité, une pratique, un projet, une relation… Pas besoin d'objectif chiffré.</span>
                 </button>
-              ) : (
+              ) : !formCreation && (
                 <div>
-                  <button type="button" className="y-btn y-btn-secondaire" onClick={() => setFormCreation((v) => !v)} aria-expanded={formCreation}>
-                    {formCreation ? 'Annuler' : '+ Choisir une chose à faire évoluer'}
+                  <button type="button" className="y-btn y-btn-secondaire" onClick={() => setFormCreation(true)} aria-expanded={false}>
+                    + Choisir une chose à faire évoluer
                   </button>
                 </div>
               )}
@@ -233,12 +250,24 @@ export default function ConstructionsPage() {
                 <div className="y-carte-saison">
                   <label className="y-section">
                     <span className="y-label y-muted">Son nom</span>
-                    <input className="y-champ" value={nomCreation} onChange={(e) => setNomCreation(e.target.value)} placeholder="Ex. Anglais oral, Écriture, Ma relation avec mon frère…" autoFocus />
+                    <input className="y-champ" value={nomCreation} onChange={(e) => setNomCreation(e.target.value)} placeholder="Ex. Anglais oral" autoFocus aria-describedby="aide-nom-construction" />
+                    <span id="aide-nom-construction" className="y-caption y-muted">Une langue, un sport, un projet, une relation… Ce que tu veux faire progresser, sans objectif chiffré.</span>
                   </label>
+                  {/* Première Construction : seulement son nom (une notion à la fois).
+                      L'Engagement reste disponible ensuite, sur sa page. */}
+                  {constructions.length > 0 && (
+                  <label className="y-section">
+                    <span className="y-label y-muted">Ce que tu acceptes de faire (facultatif)</span>
+                    <input className="y-champ" value={engagementCreation} onChange={(e) => setEngagementCreation(e.target.value)} placeholder="Ex. 20 min de conversation, 3 fois par semaine" aria-describedby="aide-engagement-creation" />
+                    <span id="aide-engagement-creation" className="y-caption y-muted">Tu pourras le préciser, le changer ou le suspendre à tout moment.</span>
+                  </label>
+                  )}
+                  {constructions.length > 0 && (
                   <label className="y-section">
                     <span className="y-label y-muted">Pourquoi elle compte pour toi (facultatif)</span>
                     <textarea className="y-champ y-champ-zone" value={intentionCreation} onChange={(e) => setIntentionCreation(e.target.value)} />
                   </label>
+                  )}
                   {saisons.length > 0 && (
                     <label className="y-section">
                       <span className="y-label y-muted">Saison (facultatif)</span>
@@ -251,8 +280,11 @@ export default function ConstructionsPage() {
                       </select>
                     </label>
                   )}
-                  <p className="y-caption y-muted">Tu pourras préciser ce que tu acceptes de faire depuis sa page.</p>
-                  <div><button type="button" className="y-btn y-btn-principal" onClick={creerLaConstruction} disabled={envoiCreation || !nomCreation.trim()}>C'est choisi</button></div>
+                  <div className="y-actions-ligne">
+                    <button type="button" className="y-btn y-btn-principal" onClick={creerLaConstruction} disabled={envoiCreation || !nomCreation.trim()}>C'est choisi</button>
+                    {/* Annuler à côté de l'action principale, là où le pouce l'attend. */}
+                    <button type="button" className="y-btn y-btn-texte" onClick={() => (depuisAujourdhui ? naviguer('/today') : setFormCreation(false))}>Annuler</button>
+                  </div>
                 </div>
               )}
 

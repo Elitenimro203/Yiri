@@ -8,7 +8,14 @@ class EntreeSuivi(Base):
     __tablename__ = "entrees_suivi"
 
     id_entree = Column(Integer, primary_key=True, index=True)
-    id_axe = Column(Integer, ForeignKey("axes.id_axe"), nullable=False)
+    # Premiers jours (décision PROVISOIRE, voir docs/DECISIONS.md) : une Action
+    # peut exister sans Construction — la réalité avant le plan (vision §2,
+    # §28). Elle pourra être rattachée plus tard (PATCH /actions/{id}).
+    id_axe = Column(Integer, ForeignKey("axes.id_axe"), nullable=True)
+    # Propriétaire direct. Indispensable pour une Action libre (sans Axe, la
+    # propriété ne peut plus se déduire de la Construction). NULL pour les
+    # lignes historiques, dont la propriété se déduit toujours de leur Axe.
+    id_utilisateur = Column(Integer, ForeignKey("utilisateurs.id_utilisateur"), nullable=True, index=True)
     # Mission 2 : pont nullable vers Engagement. Nullable pour NE PAS obliger
     # rétroactivement les entrées historiques (Wakati) à posséder un
     # engagement — leur absence de valeur ici reste un état parfaitement

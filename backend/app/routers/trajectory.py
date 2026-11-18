@@ -91,13 +91,14 @@ def _construire_evenements(current_user: Utilisateur, db: Session) -> list[Traje
         date_effective = e.date_action or e.date_coche  # fallback historique uniquement (§5)
         if date_effective is None:
             continue
-        axe = e.axe
+        axe = e.axe  # None pour une Action libre (premiers jours)
         evenements.append(TrajectoryEvent(
             type="action",
             date=date_effective,
             source_type="entree_suivi", source_id=e.id_entree,
-            title=f"Action : {axe.nom}", content=e.contenu,
-            season=_contexte_saison(axe), construction=ConstructionContext(id_construction=axe.id_axe, nom=axe.nom),
+            title="Action" if axe is None else f"Action : {axe.nom}", content=e.contenu,
+            season=_contexte_saison(axe),
+            construction=None if axe is None else ConstructionContext(id_construction=axe.id_axe, nom=axe.nom),
         ))
 
     # --- Observations (§5, §8) ----------------------------------------------
