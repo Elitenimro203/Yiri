@@ -311,3 +311,63 @@ def _evoluer_axes_sqlite(engine: Engine) -> None:
         connexion.execute(text("PRAGMA legacy_alter_table=OFF"))
         connexion.execute(text("PRAGMA foreign_keys=ON"))
         connexion.commit()
+
+
+def ouvrir_action_sans_construction(engine: Engine) -> None:
+    """
+    Premiers jours — décision provisoire : une Action peut exister sans
+    Construction. Deux opérations : `id_axe` devient nullable, et une colonne
+    `id_utilisateur` (propriétaire direct, nullable) est ajoutée. Aucune ligne
+    existante n'est modifiée. Idempotent : la présence de `id_utilisateur`
+    marque la migration comme faite.
+    """
+    inspecteur = inspect(engine)
+    colonnes_existantes = {c["name"] for c in inspecteur.get_columns("entrees_suivi")}
+    if "id_utilisateur" in colonnes_existantes:
+        return
+
+    if engine.dialect.name == "sqlite":
+        _ouvrir_action_sqlite(engine, colonnes_existantes)
+    else:
+        with engine.begin() as connexion:
+            connexion.execute(text("ALTER TABLE entrees_suivi ALTER COLUMN id_axe DROP NOT NULL"))
+            connexion.execute(text(
+                "ALTER TABLE entrees_suivi ADD COLUMN id_utilisateur INTEGER "
+                "REFERENCES utilisateurs(id_utilisateur)"
+            ))
+            connexion.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_entrees_suivi_id_utilisateur ON entrees_suivi (id_utilisateur)"
+            ))
+
+
+def _ouvrir_action_sqlite(engine: Engine, colonnes_existantes: set[str]) -> None:
+    # SQLite ne sait pas retirer un NOT NULL : reconstruction de la table,
+    # même procédé (et mêmes PRAGMA, pour la même raison) que
+    # _evoluer_entrees_suivi_sqlite ci-dessus.
+    from app.models.entree_suivi import EntreeSuivi  # import tardif, évite un cycle
+
+    a_copier = [c for c in (
+        "id_entree", "id_axe", "id_engagement", "semaine", "jour", "coche",
+        "date_coche", "date_action", "contenu",
+    ) if c in colonnes_existantes]
+    colonnes_sql = ", ".join(a_copier)
+
+    with engine.connect() as connexion:
+        connexion.execute(text("PRAGMA foreign_keys=OFF"))
+        connexion.execute(text("PRAGMA legacy_alter_table=ON"))
+        connexion.commit()
+
+    with engine.begin() as connexion:
+        connexion.execute(text("ALTER TABLE entrees_suivi RENAME TO entrees_suivi_old"))
+        connexion.execute(text("DROP INDEX IF EXISTS ix_entrees_suivi_id_entree"))
+        connexion.execute(text("DROP INDEX IF EXISTS ix_entrees_suivi_id_utilisateur"))
+        EntreeSuivi.__table__.create(bind=connexion)
+        connexion.execute(
+            text(f"INSERT INTO entrees_suivi ({colonnes_sql}) SELECT {colonnes_sql} FROM entrees_suivi_old")
+        )
+        connexion.execute(text("DROP TABLE entrees_suivi_old"))
+
+    with engine.connect() as connexion:
+        connexion.execute(text("PRAGMA legacy_alter_table=OFF"))
+        connexion.execute(text("PRAGMA foreign_keys=ON"))
+        connexion.commit()

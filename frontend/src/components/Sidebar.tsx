@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useApparence } from '../design/apparence';
 import Icone, { type NomIcone } from './yiri/Icone';
 import FeuilleNoter from './yiri/FeuilleNoter';
+import { useOuvrirNoter } from '../lib/evenements';
 import '../design/yiri-tokens.css';
 import '../design/yiri-ui.css';
 
@@ -28,6 +29,7 @@ export default function Sidebar() {
   const { utilisateur, deconnecter } = useAuth();
   const [apparence] = useApparence();
   const [noterOuvert, setNoterOuvert] = useState(false);
+  useOuvrirNoter(() => setNoterOuvert(true));
 
   return (
     <div className="yiri y-nav-racine" data-yiri-theme={apparence.theme}>

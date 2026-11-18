@@ -7,8 +7,9 @@ import { estClose } from '../../lib/constructions';
 import { signalerTraceAjoutee } from '../../lib/evenements';
 
 // « Qu'est-ce qui s'est passé ? », accessible de partout (bouton + ou
-// « Noter »). Une Action reste rattachée à une Construction (contrainte
-// actuelle de la base) ; une Observation peut exister seule.
+// « Noter »). Ni une Action ni une Observation n'exigent de Construction
+// (décision provisoire, docs/DECISIONS.md) : une trace peut exister seule,
+// et être rattachée plus tard.
 
 export default function FeuilleNoter({ onFermer }: { onFermer: () => void }) {
   const [type, setType] = useState<'action' | 'observation'>('action');
@@ -36,21 +37,18 @@ export default function FeuilleNoter({ onFermer }: { onFermer: () => void }) {
   }, [onFermer]);
 
   const texte = contenu.trim();
-  const peutEnregistrer = type === 'action' ? idConstruction !== null : texte.length > 0;
-  const aide =
-    type === 'action' && idConstruction === null
-      ? constructions.length === 0
-        ? "Pour noter une action, choisis d'abord une chose à faire évoluer (page Constructions). Tu peux déjà noter ce que tu remarques."
-        : 'Choisis pour quoi tu as agi.'
-      : 'Pas besoin que ce soit parfait ni complet.';
+  const peutEnregistrer = texte.length > 0;
+  const aide = constructions.length === 0
+    ? "Pas besoin de Construction pour noter. Une trace peut exister seule."
+    : 'Pas besoin que ce soit parfait ni complet.';
 
   async function enregistrer() {
     if (!peutEnregistrer) return;
     setEnvoi(true);
     setErreur(null);
     try {
-      if (type === 'action' && idConstruction !== null) {
-        await creerAction({ id_axe: idConstruction, date_action: date, contenu: texte || null });
+      if (type === 'action') {
+        await creerAction({ id_axe: idConstruction, date_action: date, contenu: texte });
       } else {
         await creerObservation({ contenu: texte, id_axe: idConstruction });
       }
@@ -80,14 +78,19 @@ export default function FeuilleNoter({ onFermer }: { onFermer: () => void }) {
         </div>
         <h2 id="titre-feuille-noter" className="y-title-sheet">Qu'est-ce qui s'est passé&#8239;?</h2>
 
-        <div className="y-segment" role="group" aria-label="Type de note">
+        <div className="y-segment" role="group" aria-label="Type de note" aria-describedby="noter-explication">
           <button type="button" aria-pressed={type === 'action'} onClick={() => setType('action')}>Ce que j'ai fait</button>
           <button type="button" aria-pressed={type === 'observation'} onClick={() => setType('observation')}>Ce que j'ai remarqué</button>
         </div>
+        <p id="noter-explication" className="y-caption y-muted">
+          {type === 'action'
+            ? 'Une action : quelque chose que tu as fait, même petit.'
+            : "Une observation : un fait, un écart, une surprise. Ce que tu as vu, pas ce que tu as fait."}
+        </p>
 
         {constructions.length > 0 && (
           <div className="y-section">
-            <p className="y-overline y-muted">{type === 'action' ? 'Pour quoi ?' : 'Pour quoi ? (facultatif)'}</p>
+            <p className="y-overline y-muted">Pour quoi&#8239;? (facultatif)</p>
             <div className="y-puces" role="group" aria-label="Construction">
               {constructions.map((c) => (
                 <button
@@ -100,11 +103,9 @@ export default function FeuilleNoter({ onFermer }: { onFermer: () => void }) {
                   {c.nom}
                 </button>
               ))}
-              {type === 'observation' && (
-                <button type="button" className="y-puce" aria-pressed={idConstruction === null} onClick={() => setIdConstruction(null)}>
-                  Rien de précis
-                </button>
-              )}
+              <button type="button" className="y-puce" aria-pressed={idConstruction === null} onClick={() => setIdConstruction(null)}>
+                Rien de précis
+              </button>
             </div>
           </div>
         )}
@@ -117,7 +118,7 @@ export default function FeuilleNoter({ onFermer }: { onFermer: () => void }) {
             value={contenu}
             onChange={(e) => setContenu(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && enregistrer()}
-            placeholder={type === 'action' ? 'Ex. Conversation de 25 min avec Awa' : 'Un fait, un écart, une surprise…'}
+            placeholder={type === 'action' ? 'Ex. Lu 20 pages de mon livre' : 'Ex. Je me concentre mieux le matin'}
           />
         </label>
 

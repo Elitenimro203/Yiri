@@ -31,7 +31,10 @@ def _get_entree_ou_404(entree_id: int, current_user: Utilisateur, db: Session) -
     entree = db.query(EntreeSuivi).filter(EntreeSuivi.id_entree == entree_id).first()
     if entree is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action (EntreeSuivi) introuvable")
-    _get_axe_ou_404(entree.id_axe, current_user, db)  # lève 404 si l'axe n'appartient pas à current_user
+    # Premiers jours : une Action peut être libre (sans Axe) — même règle de
+    # propriété que routers/actions.py, une seule implémentation.
+    from app.routers.actions import verifier_proprietaire_action  # import tardif, évite un cycle
+    verifier_proprietaire_action(entree, current_user, db, detail="Action (EntreeSuivi) introuvable")
     return entree
 
 

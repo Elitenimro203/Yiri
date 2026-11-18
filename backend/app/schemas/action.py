@@ -4,7 +4,9 @@ from pydantic import BaseModel, Field
 
 
 class ActionCreate(BaseModel):
-    id_axe: int
+    # Facultatif depuis les premiers jours (décision provisoire) : une Action
+    # peut exister sans Construction et y être rattachée plus tard.
+    id_axe: int | None = None
     # Facultatif — une Action spontanée doit pouvoir exister sans Engagement
     # (§2/§10). Si fourni, vérifié côté serveur : doit appartenir à
     # l'utilisateur ET à la Construction indiquée (routers/actions.py).
@@ -18,7 +20,7 @@ class ActionCreate(BaseModel):
 
 class ActionOut(BaseModel):
     id_entree: int
-    id_axe: int
+    id_axe: int | None
     id_engagement: int | None
     date_action: datetime | None
     contenu: str | None
@@ -30,3 +32,10 @@ class ActionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ActionUpdate(BaseModel):
+    # Rattacher une Action à une Construction après coup (ou l'en détacher
+    # avec null). Seul champ modifiable : le fait lui-même (date, contenu)
+    # ne se réécrit pas.
+    id_axe: int | None

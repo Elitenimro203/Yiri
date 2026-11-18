@@ -11,7 +11,7 @@ from app.models.entree_suivi import EntreeSuivi
 from app.models.utilisateur import Utilisateur
 from app.routers.axes import _get_axe_ou_404
 from app.routers.engagements import _get_engagement_ou_404
-from app.schemas.action import ActionCreate, ActionOut
+from app.schemas.action import ActionCreate, ActionOut, ActionUpdate
 
 router = APIRouter(prefix="/actions", tags=["actions"])
 
@@ -27,7 +27,15 @@ def creer_action(
     # jamais bloquée par phase_deverrouillage, contrairement à l'ancien
     # toggle_case (routers/suivi.py, legacy, inchangé) qui continue, lui, de
     # vérifier ce verrou.
-    _get_axe_ou_404(payload.id_axe, current_user, db)
+    if payload.id_axe is not None:
+        _get_axe_ou_404(payload.id_axe, current_user, db)
+    elif payload.id_engagement is not None:
+        # Un Engagement appartient toujours à une Construction : une Action
+        # libre ne peut pas en porter un.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Un Engagement demande d'indiquer sa Construction",
+        )
 
     if payload.id_engagement is not None:
         engagement = _get_engagement_ou_404(payload.id_engagement, current_user, db)  # anti-IDOR
@@ -57,6 +65,7 @@ def creer_action(
 
     action = EntreeSuivi(
         id_axe=payload.id_axe,
+        id_utilisateur=current_user.id_utilisateur,
         id_engagement=payload.id_engagement,
         semaine=None,
         jour=None,
@@ -85,10 +94,12 @@ def _toutes_actions_utilisateur(current_user: Utilisateur, db: Session):
     """
     return (
         db.query(EntreeSuivi)
-        .join(EntreeSuivi.axe)
+        .outerjoin(EntreeSuivi.axe)
         .filter(
             EntreeSuivi.coche.is_(True),
             or_(
+                # Action libre (sans Construction) ou moderne : propriétaire direct.
+                EntreeSuivi.id_utilisateur == current_user.id_utilisateur,
                 Axe.id_utilisateur == current_user.id_utilisateur,
                 Axe.programme.has(id_utilisateur=current_user.id_utilisateur),
             ),
@@ -123,11 +134,26 @@ def lister_actions(
     return resultats
 
 
+def verifier_proprietaire_action(action: EntreeSuivi, current_user: Utilisateur, db: Session, detail: str = "Action introuvable") -> None:
+    """
+    Anti-IDOR — unique implémentation de la propriété d'une Action :
+    propriétaire direct si renseigné, sinon via sa Construction (lignes
+    historiques). Lève 404, jamais 403, pour ne rien révéler.
+    """
+    if action.id_utilisateur is not None:
+        if action.id_utilisateur != current_user.id_utilisateur:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+        return
+    if action.id_axe is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+    _get_axe_ou_404(action.id_axe, current_user, db)
+
+
 def _get_action_ou_404(action_id: int, current_user: Utilisateur, db: Session) -> EntreeSuivi:
     action = db.query(EntreeSuivi).filter(EntreeSuivi.id_entree == action_id).first()
     if action is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Action introuvable")
-    _get_axe_ou_404(action.id_axe, current_user, db)  # anti-IDOR
+    verifier_proprietaire_action(action, current_user, db)
     return action
 
 
@@ -138,3 +164,35 @@ def get_action(
     db: Session = Depends(get_db),
 ):
     return _get_action_ou_404(action_id, current_user, db)
+
+
+@router.patch("/{action_id}", response_model=ActionOut)
+def rattacher_action(
+    action_id: int,
+    payload: ActionUpdate,
+    current_user: Utilisateur = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Rattache une Action à une Construction après coup, ou l'en détache.
+    Une case Wakati historique (semaine renseignée) n'est jamais modifiée.
+    """
+    action = _get_action_ou_404(action_id, current_user, db)
+    if action.semaine is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Une entrée Wakati historique ne se déplace pas",
+        )
+    if payload.id_axe is not None:
+        _get_axe_ou_404(payload.id_axe, current_user, db)
+    if action.id_engagement is not None and payload.id_axe != action.id_axe:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cette Action est liée à un Engagement de sa Construction actuelle",
+        )
+    # La propriété reste vérifiable quoi qu'il arrive à id_axe.
+    action.id_utilisateur = current_user.id_utilisateur
+    action.id_axe = payload.id_axe
+    db.commit()
+    db.refresh(action)
+    return action

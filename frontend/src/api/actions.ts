@@ -2,14 +2,14 @@ import { apiRequest } from './client';
 
 export interface Action {
   id_entree: number;
-  id_axe: number;
+  id_axe: number | null; // null = Action libre (sans Construction)
   id_engagement: number | null;
   date_action: string | null; // ISO datetime — jamais une semaine/jour Wakati
   contenu: string | null;
 }
 
 export interface ActionCreate {
-  id_axe: number;
+  id_axe?: number | null; // facultatif : une Action peut exister sans Construction
   id_engagement?: number | null;
   date_action?: string | null; // date seule (YYYY-MM-DD) ; absente = aujourd'hui, côté serveur
   contenu?: string | null;
@@ -25,3 +25,7 @@ export const listerActions = (filtres?: { axeId?: number; engagementId?: number 
 
 export const creerAction = (payload: ActionCreate): Promise<Action> =>
   apiRequest('/actions', { method: 'POST', body: payload });
+
+/** Rattache une Action à une Construction après coup (null = la détacher). */
+export const rattacherAction = (id: number, idAxe: number | null): Promise<Action> =>
+  apiRequest(`/actions/${id}`, { method: 'PATCH', body: { id_axe: idAxe } });
