@@ -250,3 +250,10 @@
 .y-libre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--y-space-2); padding-top: var(--y-space-2); border-top: 1px solid var(--y-line); }
 .y-libre-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 160px; }
 .y-premier-consigne { margin: 0; font: 400 24px/1.2 var(--y-font-display); color: var(--y-ink); }
+
+/* ---------- Finitions UX/UI (premiers jours) ---------- */
+/* Un lien d'en-tête ne se coupe jamais en deux lignes ; c'est le titre qui s'adapte. */
+.y-section-head .y-lien, .y-section-head .y-btn { white-space: nowrap; flex-shrink: 0; }
+/* Feuille Noter : le choix sélectionné ressort (blanc sur piste grise), comme dans la maquette. */
+.y-feuille .y-segment { background: var(--y-surface); }
+.y-feuille .y-segment button[aria-pressed='true'] { background: var(--y-bg); }

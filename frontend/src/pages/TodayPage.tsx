@@ -216,7 +216,7 @@ export default function TodayPage() {
               <section className="y-section" aria-labelledby="titre-fil">
                 <div className="y-section-head">
                   <h2 id="titre-fil" className="y-overline">Ce qui s'est réellement passé</h2>
-                  <Link to="/trajectory" className="y-lien">Relire ta trajectoire →</Link>
+                  <Link to="/trajectory" className="y-lien">Trajectoire →</Link>
                 </div>
                 <FilTraces traces={fil} aujourdhui={aujourdhui} />
                 {actions.length + observations.length === 1 && (
@@ -276,7 +276,7 @@ export default function TodayPage() {
             <section className="y-section" aria-labelledby="titre-fil">
               <div className="y-section-head">
                 <h2 id="titre-fil" className="y-overline">Ce qui s'est réellement passé</h2>
-                <Link to="/trajectory" className="y-lien">Relire ta trajectoire →</Link>
+                <Link to="/trajectory" className="y-lien">Trajectoire →</Link>
               </div>
               <FilTraces traces={fil} aujourdhui={aujourdhui} />
             </section>

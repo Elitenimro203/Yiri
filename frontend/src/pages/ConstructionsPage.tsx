@@ -238,10 +238,10 @@ export default function ConstructionsPage() {
                   <span className="y-body" style={{ fontWeight: 600 }}>Choisir une chose à faire évoluer →</span>
                   <span className="y-label y-muted">Une capacité, une pratique, un projet, une relation… Pas besoin d'objectif chiffré.</span>
                 </button>
-              ) : (
+              ) : !formCreation && (
                 <div>
-                  <button type="button" className="y-btn y-btn-secondaire" onClick={() => (formCreation && depuisAujourdhui ? naviguer('/today') : setFormCreation((v) => !v))} aria-expanded={formCreation}>
-                    {formCreation ? 'Annuler' : '+ Choisir une chose à faire évoluer'}
+                  <button type="button" className="y-btn y-btn-secondaire" onClick={() => setFormCreation(true)} aria-expanded={false}>
+                    + Choisir une chose à faire évoluer
                   </button>
                 </div>
               )}
@@ -250,7 +250,7 @@ export default function ConstructionsPage() {
                 <div className="y-carte-saison">
                   <label className="y-section">
                     <span className="y-label y-muted">Son nom</span>
-                    <input className="y-champ" value={nomCreation} onChange={(e) => setNomCreation(e.target.value)} placeholder="Ex. Anglais oral, Écriture, Ma relation avec mon frère…" autoFocus aria-describedby="aide-nom-construction" />
+                    <input className="y-champ" value={nomCreation} onChange={(e) => setNomCreation(e.target.value)} placeholder="Ex. Anglais oral" autoFocus aria-describedby="aide-nom-construction" />
                     <span id="aide-nom-construction" className="y-caption y-muted">Une langue, un sport, un projet, une relation… Ce que tu veux faire progresser, sans objectif chiffré.</span>
                   </label>
                   {/* Première Construction : seulement son nom (une notion à la fois).
@@ -280,7 +280,11 @@ export default function ConstructionsPage() {
                       </select>
                     </label>
                   )}
-                  <div><button type="button" className="y-btn y-btn-principal" onClick={creerLaConstruction} disabled={envoiCreation || !nomCreation.trim()}>C'est choisi</button></div>
+                  <div className="y-actions-ligne">
+                    <button type="button" className="y-btn y-btn-principal" onClick={creerLaConstruction} disabled={envoiCreation || !nomCreation.trim()}>C'est choisi</button>
+                    {/* Annuler à côté de l'action principale, là où le pouce l'attend. */}
+                    <button type="button" className="y-btn y-btn-texte" onClick={() => (depuisAujourdhui ? naviguer('/today') : setFormCreation(false))}>Annuler</button>
+                  </div>
                 </div>
               )}
 
