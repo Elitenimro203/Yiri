@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import EcranReveil from '../components/yiri/EcranReveil';
+import { useSignalerAttente } from '../lib/attenteServeur';
 import { ApiError } from '../api/client';
 import { register } from '../api/auth';
 import { useApparence } from '../design/apparence';
@@ -29,6 +29,9 @@ export default function LoginPage() {
   const [confirmation, setConfirmation] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  // Connexion longue = serveur qui se réveille : l'écran de réveil global
+  // prend le relais (invisible si la réponse arrive en moins d'une demi-seconde).
+  useSignalerAttente(enCours);
 
   function changerMode(m: Mode) {
     setMode(m);
@@ -89,9 +92,6 @@ export default function LoginPage() {
 
   return (
     <main className="yiri y-auth" data-yiri-theme={apparence.theme}>
-      {/* Connexion longue = serveur qui se réveille : l'écran d'attente prend
-          le relais (invisible si la réponse arrive en moins d'une demi-seconde). */}
-      {enCours && <EcranReveil />}
       <div className="y-auth-colonne">
         <p className="y-rail-marque" style={{ padding: 0 }}>Yiri</p>
 

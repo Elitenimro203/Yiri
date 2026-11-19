@@ -259,13 +259,25 @@
 .y-feuille .y-segment button[aria-pressed='true'] { background: var(--y-bg); }
 
 /* ---------- Écran de réveil du serveur ---------- */
-.y-reveil { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; background: var(--y-bg); color: var(--y-ink); padding: 28px; animation: y-apparait 0.4s ease 0.5s both; }
+.y-reveil { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; color: var(--y-ink); padding: 28px; animation: y-apparait 0.4s ease 0.5s both; }
+.y-reveil-fond { position: absolute; inset: 0; background: var(--y-bg); transition: opacity 0.5s ease 0.1s; }
+.y-reveil-corps { position: relative; }
+.y-reveil-textes { display: flex; flex-direction: column; align-items: center; gap: 10px; transition: opacity 0.3s ease; }
+/* Sortie : le fond s'efface sur la page qui apparaît, sans bloquer les gestes. */
+.y-reveil-sortie { pointer-events: none; }
+.y-reveil-sortie .y-reveil-fond, .y-reveil-sortie .y-reveil-textes { opacity: 0; }
+.y-reveil-fruit { position: fixed; z-index: 1; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%; background: var(--y-accent); opacity: 0; transition: left 0.55s cubic-bezier(.5,0,.2,1), top 0.55s cubic-bezier(.5,0,.2,1), width 0.55s, height 0.55s, margin 0.55s, opacity 0.4s; }
+.y-reveil-fruit-visible { opacity: 1; }
+.y-reveil-fruit-arrive { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; }
+.y-reveil-fruit-efface { opacity: 0; transition-duration: 0.55s, 0.55s, 0.55s, 0.55s, 0.55s, 0.5s; }
 .y-reveil-corps { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 18px; }
 .y-reveil-loi { min-height: 2.8em; margin: 0; color: var(--y-ink-muted); animation: y-apparait 0.8s ease both; }
 @keyframes y-apparait { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .y-reveil, .y-reveil-loi { animation: none; }
+  .y-reveil-fruit { transition: none; }
 }
 .y-arbre-reveil { display: block; width: 100%; height: min(46vh, 340px); }
 .y-reveil-corps { align-items: center; text-align: center; gap: 10px; }
 .y-reveil-marque { margin-top: 4px; }
+.yiri.y-reveil { background: transparent; } /* le fond est porté par .y-reveil-fond, qui s'efface à la sortie */

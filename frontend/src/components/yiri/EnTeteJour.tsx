@@ -20,7 +20,7 @@ export default function EnTeteJour({ date, intensite, saison, reglagesOuverts, o
     <header className="y-entete" data-intensite={intensite}>
       <div className="y-entete-haut">
         {saison ? (
-          <Link to="/constructions" className="y-pastille-saison">
+          <Link to="/constructions" className="y-pastille-saison" data-yiri-cible="saison">
             Saison · {saison.nom}
           </Link>
         ) : (

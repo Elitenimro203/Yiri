@@ -1,100 +1,52 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, type Arbre, type Pose } from './arbreGeneratif';
 
-// Arbre de l'écran d'attente : une graine tombe, un arbre pousse (branches à
-// l'encre, léger lavis, feuillage de points), un fruit mûrit, tombe, roule au
-// centre et devient la graine de l'arbre suivant. Chaque arbre est différent.
+// Arbre de l'écran d'attente : une graine, un arbre qui pousse (trait de
+// plume, léger lavis, feuillage de points qui éclot du cœur vers l'extérieur),
+// un fruit qui mûrit, tombe, s'écrase un peu, roule au centre et devient la
+// graine de l'arbre suivant. Chaque arbre est différent.
 //
 // Purement symbolique (vision §17, §30) : il ne reflète AUCUNE donnée de la
-// personne, rien ne se mérite ni ne se perd. Couleurs lues dans le thème
-// (encre, accent, ligne). Pensé pour les téléphones modestes : feuillage
-// limité, 30 images/s au plus, pause quand l'onglet est caché, arbre immobile
-// si l'appareil demande moins d'animations.
+// personne, rien ne se mérite ni ne se perd. Couleurs lues dans le thème.
+// Téléphones modestes : cadence adaptative (60 → 30 images/s si l'appareil
+// peine), résolution plafonnée, pause quand l'onglet est caché, arbre
+// immobile si l'appareil demande moins d'animations.
 
 type Rgb = [number, number, number];
 
-interface Segment { x0: number; y0: number; cx: number; cy: number; x1: number; y1: number; ep: number; debut: number; duree: number; decal: number }
-interface Point { x: number; y: number; r: number; alpha: number; debut: number }
-interface Tache { x: number; y: number; r: number; alpha: number; debut: number }
-interface Arbre { segments: Segment[]; points: Point[]; taches: Tache[]; fruit: { x: number; y: number } }
+/** Pilotage de la sortie : l'arbre se dissout et rend la position (écran)
+ *  du fruit — ou d'une graine en haut de l'arbre s'il n'y a pas encore de
+ *  fruit — pour qu'il rejoigne la page qui apparaît. */
+export interface ArbreReveilHandle { sortir(): { x: number; y: number } }
 
-const PROFONDEUR_MAX = 5;
-const MUR_MS = 5600;
-const CHUTE_MS = 7000;
-const FIN_MS = 9400;
-const IMAGE_MIN_MS = 1000 / 30;
+const DUREE_SORTIE_MS = 650;
+const GRAVITE = 1400;        // px/s²
+const RAYON_FRUIT = 6.5;
 
 function hexVersRgb(valeur: string, defaut: Rgb): Rgb {
   const h = valeur.trim().replace('#', '');
   if (!/^[0-9a-f]{6}$/i.test(h)) return defaut;
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
+const melange = (a: Rgb, b: Rgb, k: number): Rgb => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+const rgba = (c: Rgb, a: number) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${a})`;
 
-function generateur(graine: number) {
-  let s = (graine * 9301 + 49297) % 2147483647 || 1;
-  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+// Chronologie du fruit, relative à la fin de la pousse.
+function chrono(arbre: Arbre, sol: number, yFruit: number) {
+  const mur = arbre.finPousse + 300;
+  const chute = mur + 1500;
+  const dureeChute = Math.sqrt((2 * Math.max(20, sol - RAYON_FRUIT - yFruit)) / GRAVITE) * 1000;
+  const sol1 = chute + dureeChute;
+  const rebondFin = sol1 + 320;
+  const roule = rebondFin + 850;
+  // L'arbre suivant naît dès que le fruit atteint le centre : pas de temps mort.
+  return { mur, chute, dureeChute, sol1, rebondFin, roule, fin: roule };
 }
 
-const doux = (k: number) => (k <= 0 ? 0 : k >= 1 ? 1 : 1 - Math.pow(1 - k, 3));
-const rebond = (k: number) => (k <= 0 ? 0 : k >= 1 ? 1 : 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2));
-
-function pousser(graine: number, cx: number, sol: number, hauteur: number, largeur: number): Arbre {
-  const r = generateur(graine);
-  const segments: Segment[] = [];
-  const points: Point[] = [];
-  const taches: Tache[] = [];
-  const branche = (x0: number, y0: number, angle: number, long: number, ep: number, prof: number, debut: number) => {
-    const x1 = x0 + Math.cos(angle) * long;
-    const y1 = y0 + Math.sin(angle) * long;
-    const duree = 420 + long * 9;
-    segments.push({
-      x0, y0, x1, y1, ep, debut, duree, decal: (r() - 0.5) * 1.8,
-      cx: x0 + Math.cos(angle + (r() - 0.5) * 0.5) * long * 0.5,
-      cy: y0 + Math.sin(angle + (r() - 0.5) * 0.5) * long * 0.5,
-    });
-    const fin = debut + duree * 0.85;
-    if (prof >= PROFONDEUR_MAX || long < 9) {
-      const n = 2 + Math.floor(r() * 3);
-      for (let i = 0; i < n; i++) {
-        const a = r() * Math.PI * 2;
-        const d = r() * 15;
-        points.push({ x: x1 + Math.cos(a) * d, y: y1 + Math.sin(a) * d * 0.8, r: 2.4 + r() * 4, alpha: 0.22 + r() * 0.7, debut: fin + r() * 700 });
-      }
-      if (r() < 0.5) taches.push({ x: x1 + (r() - 0.5) * 12, y: y1 + (r() - 0.5) * 10, r: 10 + r() * 12, alpha: 0.05 + r() * 0.04, debut: fin - 200 + r() * 600 });
-      return;
-    }
-    const enfants = prof < 1 ? 2 : r() < 0.3 ? 3 : 2;
-    for (let i = 0; i < enfants; i++) {
-      branche(x1, y1, angle + (0.32 + r() * 0.38) * (i % 2 ? 1 : -1) + (r() - 0.5) * 0.25, long * (0.7 + r() * 0.14), ep * 0.66, prof + 1, fin + r() * 120);
-    }
-  };
-  branche(cx, sol, -Math.PI / 2 + (r() - 0.5) * 0.12, hauteur * 0.27, 6, 0, 700);
-  // Chaque arbre tient dans la toile : on le réduit autour de sa base si sa
-  // couronne déborderait (jamais agrandi, pour garder une taille stable).
-  const marge = 14;
-  let minX = cx, maxX = cx, minY = sol;
-  for (const g of segments) { minX = Math.min(minX, g.x1, g.cx); maxX = Math.max(maxX, g.x1, g.cx); minY = Math.min(minY, g.y1, g.cy); }
-  for (const p of points) { minX = Math.min(minX, p.x - p.r); maxX = Math.max(maxX, p.x + p.r); minY = Math.min(minY, p.y - p.r); }
-  const echelle = Math.min(1, (cx - marge) / Math.max(1, cx - minX), (largeur - cx - marge) / Math.max(1, maxX - cx), (sol - marge) / Math.max(1, sol - minY));
-  if (echelle < 1) {
-    const ech = (x: number, y: number): [number, number] => [cx + (x - cx) * echelle, sol + (y - sol) * echelle];
-    for (const g of segments) {
-      [g.x0, g.y0] = ech(g.x0, g.y0); [g.cx, g.cy] = ech(g.cx, g.cy); [g.x1, g.y1] = ech(g.x1, g.y1); g.ep *= Math.max(0.75, echelle);
-    }
-    for (const p of points) { [p.x, p.y] = ech(p.x, p.y); p.r *= Math.max(0.8, echelle); }
-    for (const q of taches) { [q.x, q.y] = ech(q.x, q.y); q.r *= echelle; }
-  }
-  const visibles = points.filter((p) => p.alpha > 0.5);
-  const porteur = visibles[Math.floor(r() * visibles.length)] ?? points[0] ?? { x: cx, y: sol - 80 };
-  return { segments, points, taches, fruit: { x: porteur.x, y: porteur.y } };
-}
-
-function pointCourbe(s: Segment, k: number): [number, number] {
-  const u = 1 - k;
-  return [u * u * s.x0 + 2 * u * k * s.cx + k * k * s.x1, u * u * s.y0 + 2 * u * k * s.cy + k * k * s.y1];
-}
-
-export default function ArbreReveil() {
+const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, ref) {
   const toile = useRef<HTMLCanvasElement>(null);
+  const pilote = useRef<ArbreReveilHandle>({ sortir: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) });
+  useImperativeHandle(ref, () => ({ sortir: () => pilote.current.sortir() }), []);
 
   useEffect(() => {
     const canvas = toile.current;
@@ -104,10 +56,11 @@ export default function ArbreReveil() {
     const styles = getComputedStyle(canvas);
     const encre = hexVersRgb(styles.getPropertyValue('--y-ink'), [17, 18, 20]);
     const accent = hexVersRgb(styles.getPropertyValue('--y-accent'), [35, 70, 184]);
+    const fond = hexVersRgb(styles.getPropertyValue('--y-bg'), [255, 255, 255]);
     const ligne = hexVersRgb(styles.getPropertyValue('--y-line'), [230, 231, 234]);
-    // Sur fond sombre, le lavis se voit davantage : on l'allège.
-    const lumineux = (encre[0] + encre[1] + encre[2]) / 3 > 128;
-    const forceLavis = lumineux ? 0.55 : 1;
+    const accentClair = melange(accent, fond, 0.35);
+    const sombre = (fond[0] + fond[1] + fond[2]) / 3 < 128;
+    const forceLavis = sombre ? 0.55 : 1;
     const calme = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 
     let L = 0, H = 0, sol = 0;
@@ -119,96 +72,238 @@ export default function ArbreReveil() {
     };
     dimensionner();
 
-    let graine = 7;
-    let arbre = pousser(graine, L / 2, sol, H, L);
+    let numero = 1;
+    let arbre = pousserArbre(numero, L / 2, sol, H, L);
+    // Calculés une fois par arbre, pas à chaque image.
+    // Feuilles regroupées en 2 teintes × 6 niveaux d'opacité.
+    type Groupes = Map<string, number[]> & Map<string, number[]>;
+    let cache = { repos: [] as Pose[], c: chrono(arbre, sol, 0), groupes: [] as [[boolean, number], number[]][] };
+    const preparer = () => {
+      const repos = poser(arbre, L / 2, sol, () => 0);
+      const parCle: Groupes = new Map();
+      arbre.feuilles.forEach((f, i) => {
+        const niveau = Math.round(f.alpha * 6) / 6;
+        const cle = `${f.clair ? 1 : 0}|${niveau}`;
+        if (!parCle.has(cle)) parCle.set(cle, []);
+        parCle.get(cle)!.push(i);
+      });
+      cache = {
+        repos,
+        c: chrono(arbre, sol, positionAccroche(repos, arbre, arbre.feuilles[arbre.porteFruit])[1]),
+        groupes: [...parCle.entries()].map(([cle, ind]) => {
+          const [clair, niveau] = cle.split('|');
+          return [[clair === '1', Number(niveau)], ind] as [[boolean, number], number[]];
+        }),
+      };
+    };
+    preparer();
+    // L'arbre suivant est calculé à l'avance, quand le navigateur est libre.
+    let prochain: Arbre | null = null;
+    let calculEnCours = false;
+    const anticiper = () => {
+      if (prochain || calculEnCours) return;
+      calculEnCours = true;
+      const calculer = () => { prochain = pousserArbre(numero + 1, L / 2, sol, H, L); calculEnCours = false; };
+      const ric = (window as Window & { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+      if (ric) ric(calculer, { timeout: 1500 }); else window.setTimeout(calculer, 0);
+    };
+    let graineAuSol = false;   // les cycles suivants partent du fruit tombé au centre
     let debut = performance.now();
-    let derniere = 0;
-    let anim = 0;
+    let sortie: number | null = null;
+    let tCourant = 0;
+    let fruitVisible: [number, number] | null = null;
 
-    const rgba = (c: Rgb, a: number) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+    // Trait de plume : une forme pleine, épaisse à la naissance, fine à
+    // l'arrivée, avec une pression légèrement irrégulière.
+    const dessinerBranche = (p: Pose, b: Arbre['branches'][number], k: number, alpha: number, e: number) => {
+      // Les branches fines n'ont pas besoin d'autant de points que le tronc.
+      const n = Math.max(3, Math.ceil((b.prof < 2 ? 12 : 6) * k));
+      const gauche: [number, number][] = [];
+      const droite: [number, number][] = [];
+      for (let i = 0; i <= n; i++) {
+        const u = (i / n) * k;
+        const v = 1 - u;
+        const x = v * v * p.x0 + 2 * v * u * p.cx + u * u * p.x1;
+        const y = v * v * p.y0 + 2 * v * u * p.cy + u * u * p.y1;
+        // Tangente de la courbe (dérivée), normalisée : la normale sans trigonométrie.
+        let tx = 2 * v * (p.cx - p.x0) + 2 * u * (p.x1 - p.cx);
+        let ty = 2 * v * (p.cy - p.y0) + 2 * u * (p.y1 - p.cy);
+        const lg = Math.hypot(tx, ty) || 1; tx /= lg; ty /= lg;
+        const w = ((b.epDebut + (b.epFin - b.epDebut) * u) * e * b.pression * (1 + 0.07 * Math.sin(u * 9 + b.debut))) / 2;
+        gauche.push([x - ty * w, y + tx * w]);
+        droite.push([x + ty * w, y - tx * w]);
+      }
+      ctx.fillStyle = rgba(encre, alpha);
+      ctx.beginPath();
+      ctx.moveTo(gauche[0][0], gauche[0][1]);
+      for (const q of gauche) ctx.lineTo(q[0], q[1]);
+      for (let i = droite.length - 1; i >= 0; i--) ctx.lineTo(droite[i][0], droite[i][1]);
+      ctx.closePath(); ctx.fill();
+      // Jonction douce avec la branche mère.
+      ctx.beginPath(); ctx.arc(p.x0, p.y0, (b.epDebut * e * b.pression) / 2, 0, Math.PI * 2); ctx.fill();
+    };
 
-    const dessiner = (t: number) => {
+    const dessiner = (t: number, s = 0) => {
       ctx.clearRect(0, 0, L, H);
-      ctx.globalAlpha = 1;
+      const e = arbre.echelle;
+      const { repos, c } = cache;
+      const fonduArbre = t > c.sol1 ? Math.max(0, 1 - (t - c.sol1) / 750) : 1;
+      const fondu = fonduArbre * (1 - doux(s * 1.4));
+
+      ctx.globalAlpha = 1 - s;
       ctx.strokeStyle = rgba(ligne, 1); ctx.lineWidth = 1; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(L / 2 - 90, sol); ctx.lineTo(L / 2 + 90, sol); ctx.stroke();
+      ctx.globalAlpha = 1;
 
-      const fondu = t > CHUTE_MS + 500 ? Math.max(0, 1 - (t - CHUTE_MS - 500) / 1000) : 1;
-      const balance = Math.sin(t / 1600) * 0.012 * doux((t - 4400) / 1500);
-      ctx.save();
-      ctx.translate(L / 2, sol); ctx.rotate(balance); ctx.translate(-L / 2, -sol);
+      // Vent : plie davantage vers les extrémités, avec un retard par génération.
+      const vent = calme ? () => 0 : (prof: number) =>
+        0.0065 * Math.pow(prof + 1, 1.25) * Math.sin(t / 1700 - prof * 0.45) * doux((t - arbre.finPousse + 1600) / 1600);
+      const poses = poser(arbre, L / 2, sol, vent);
 
       for (const q of arbre.taches) {
         const k = doux((t - q.debut) / 1800);
         if (k <= 0) continue;
+        const [x, y] = positionAccroche(poses, arbre, q);
         ctx.fillStyle = rgba(accent, q.alpha * forceLavis * fondu);
-        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(q.x + i, q.y - i * 0.7, q.r * k * (1 - i * 0.15), 0, Math.PI * 2); ctx.fill(); }
+        for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(x + i, y - i * 0.7, q.r * e * k * (1 - i * 0.15), 0, Math.PI * 2); ctx.fill(); }
       }
-      for (const s of arbre.segments) {
-        const k = doux((t - s.debut) / s.duree);
-        if (k <= 0) continue;
-        for (const [decal, largeur, alpha] of [[s.decal, Math.max(0.8, s.ep * 1.6), 0.1 * forceLavis], [0, Math.max(0.6, s.ep), 0.9]] as const) {
-          ctx.strokeStyle = rgba(encre, alpha * fondu); ctx.lineWidth = largeur;
-          ctx.beginPath(); ctx.moveTo(s.x0 + decal, s.y0);
-          for (let i = 1; i <= 10 * k; i++) { const p = pointCourbe(s, i / 10); ctx.lineTo(p[0] + decal, p[1]); }
-          const p = pointCourbe(s, k); ctx.lineTo(p[0] + decal, p[1]); ctx.stroke();
+      arbre.branches.forEach((b, i) => {
+        const k = doux((t - b.debut) / b.duree);
+        if (k <= 0) return;
+        const p = poses[i];
+        // Lavis : trait léger et décalé, comme l'encre qui a bu le papier.
+        // Seulement sur les grosses branches : invisible sur les fines.
+        if (b.prof < 3) {
+        ctx.strokeStyle = rgba(encre, 0.09 * forceLavis * fondu);
+        ctx.lineWidth = Math.max(0.8, b.epDebut * e * 1.5);
+        ctx.beginPath(); ctx.moveTo(p.x0 + 1.2, p.y0);
+        for (let j = 1; j <= 8 * k; j++) { const q = surCourbe(p, j / 8); ctx.lineTo(q[0] + 1.2, q[1]); }
+        ctx.stroke();
+        }
+        dessinerBranche(p, b, k, 0.92 * fondu, e);
+      });
+      // Feuillage regroupé par teinte : une douzaine de remplissages par image
+      // au lieu d'un par feuille.
+      const opacite = fonduArbre * (1 - s);
+      if (opacite > 0) {
+        for (const [cle, indices] of cache.groupes) {
+          const [clair, niveau] = cle;
+          ctx.fillStyle = rgba(clair ? accentClair : accent, niveau * opacite);
+          ctx.beginPath();
+          let vide = true;
+          for (const i of indices) {
+            if (i === arbre.porteFruit && t >= c.mur) continue; // cette feuille devient le fruit
+            const f = arbre.feuilles[i];
+            const k = rebond((t - f.debut) / 650);
+            if (k <= 0) continue;
+            const [x, y] = positionAccroche(poses, arbre, f);
+            const px = x + f.vx * s * 60, py = y + f.vy * s * 70, r = f.r * e * k * (1 - s * 0.4);
+            ctx.moveTo(px + r, py); ctx.arc(px, py, r, 0, Math.PI * 2);
+            vide = false;
+          }
+          if (!vide) ctx.fill();
         }
       }
-      for (const q of arbre.points) {
-        const k = rebond((t - q.debut) / 650);
-        if (k <= 0) continue;
-        ctx.fillStyle = rgba(accent, q.alpha * fondu);
-        ctx.beginPath(); ctx.arc(q.x, q.y, q.r * k, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.restore();
 
-      // La graine tombe, puis se fond dans le tronc.
-      const graineVisible = t < 900 ? doux(t / 500) : Math.max(0, 1 - (t - 900) / 400);
-      if (graineVisible > 0) {
+      fruitVisible = null;
+      if (s > 0) return; // à la sortie, le fruit est porté par la page (EcranReveil)
+
+      // Graine : tombe du ciel au premier arbre ; ensuite, c'est le fruit
+      // tombé qui attend au centre, puis se fond dans le tronc qui naît.
+      const graine = t < 900 ? (graineAuSol ? 1 : doux(t / 450)) : Math.max(0, 1 - (t - 900) / 400);
+      if (graine > 0) {
+        const y = graineAuSol ? sol - RAYON_FRUIT : sol - RAYON_FRUIT - (1 - doux(t / 700)) * 60;
         ctx.fillStyle = rgba(accent, 1);
-        ctx.beginPath(); ctx.arc(L / 2, sol - 6 - (1 - doux(t / 700)) * 60, 6 * graineVisible, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(L / 2, y, RAYON_FRUIT * graine, 0, Math.PI * 2); ctx.fill();
       }
-      // Le fruit mûrit, tombe, roule jusqu'au centre : la graine du suivant.
-      const mur = rebond((t - MUR_MS) / 700);
-      if (mur > 0) {
-        let fx = arbre.fruit.x, fy = arbre.fruit.y;
-        const c = (t - CHUTE_MS) / 1000;
-        if (c > 0) {
-          const k = Math.min(1, c);
-          fy = arbre.fruit.y + (sol - 6 - arbre.fruit.y) * k * k;
-          if (c > 1) fx = arbre.fruit.x + (L / 2 - arbre.fruit.x) * doux((c - 1) / 1.2);
+
+      // Fruit : mûrit (grossit, se teinte), tombe, s'écrase, rebondit, roule au centre.
+      if (t < c.mur) return;
+      anticiper();
+      const [fx0, fy0] = positionAccroche(poses, arbre, arbre.feuilles[arbre.porteFruit]);
+      let fx = fx0, fy = fy0, sx = 1, sy = 1, rot = 0;
+      const maturite = doux((t - c.mur) / 1200);
+      if (t >= c.chute) {
+        const [rx, ry] = positionAccroche(repos, arbre, arbre.feuilles[arbre.porteFruit]);
+        fx = rx;
+        const tc = Math.min(t - c.chute, c.dureeChute) / 1000;
+        fy = ry + 0.5 * GRAVITE * tc * tc;
+        if (t >= c.sol1) {
+          fy = sol - RAYON_FRUIT;
+          const ts = t - c.sol1;
+          if (ts < 120) { const k = Math.sin((ts / 120) * Math.PI); sx = 1 + 0.28 * k; sy = 1 - 0.28 * k; fy += RAYON_FRUIT * 0.28 * k; }
+          else if (t < c.rebondFin) { const k = (t - c.sol1 - 120) / (c.rebondFin - c.sol1 - 120); fy -= Math.sin(k * Math.PI) * 9; }
+          if (t >= c.rebondFin) {
+            const k = doux((t - c.rebondFin) / (c.roule - c.rebondFin));
+            fx = rx + (L / 2 - rx) * k;
+            rot = (fx - rx) / RAYON_FRUIT;
+          }
         }
-        ctx.fillStyle = rgba(accent, 1);
-        ctx.beginPath(); ctx.arc(fx, fy, 6.5 * Math.min(1, mur), 0, Math.PI * 2); ctx.fill();
       }
+      const rayon = RAYON_FRUIT * (0.35 + 0.65 * maturite);
+      ctx.save();
+      ctx.translate(fx, fy); ctx.scale(sx, sy);
+      ctx.fillStyle = rgba(melange(accentClair, accent, maturite), 1);
+      ctx.beginPath(); ctx.arc(0, 0, rayon, 0, Math.PI * 2); ctx.fill();
+      // Un reflet qui tourne : on voit le fruit rouler.
+      ctx.fillStyle = rgba(fond, 0.45 * maturite);
+      ctx.beginPath(); ctx.arc(Math.cos(rot - 2.2) * rayon * 0.45, Math.sin(rot - 2.2) * rayon * 0.45, rayon * 0.22, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      if (maturite > 0.6) fruitVisible = [fx, fy];
+      if (t > c.fin) {
+        numero += 1;
+        arbre = prochain ?? pousserArbre(numero, L / 2, sol, H, L);
+        prochain = null;
+        preparer();
+        graineAuSol = true;
+        // Le fruit vient de se poser : on saute la chute de la graine.
+        debut = performance.now() - 350;
+      }
+    };
+
+    pilote.current.sortir = () => {
+      if (sortie === null) sortie = performance.now();
+      const rect = canvas.getBoundingClientRect();
+      if (calme) ctx.clearRect(0, 0, L, H); // sans animation : l'arbre s'efface d'un coup
+      let haut = sol;
+      for (const p of poser(arbre, L / 2, sol, () => 0)) haut = Math.min(haut, p.y1);
+      const [x, y] = fruitVisible ?? [L / 2, Math.max(16, haut - 10)];
+      return { x: rect.left + x, y: rect.top + y };
     };
 
     if (calme) {
-      // Un arbre déjà poussé, feuillage complet, immobile.
-      const complet = Math.max(...arbre.points.map((p) => p.debut + 700), ...arbre.taches.map((q) => q.debut + 1800), MUR_MS + 800);
-      dessiner(Math.min(complet, CHUTE_MS + 400));
+      dessiner(arbre.finPousse + 200); // arbre complet, immobile
       return;
     }
 
+    // Boucle à cadence adaptative, mesurée en continu : si une image coûte en
+    // moyenne plus de 7 ms (feuillage complet sur un téléphone modeste), on
+    // passe à 30 images/s ; on revient à 60 si l'appareil respire à nouveau.
+    let anim = 0;
+    let derniere = 0;
+    let intervalle = 0;
+    let coutMoyen = 0;
     const boucle = (maintenant: number) => {
       anim = requestAnimationFrame(boucle);
-      if (maintenant - derniere < IMAGE_MIN_MS) return;
+      if (intervalle && maintenant - derniere < intervalle) return;
       derniere = maintenant;
-      let t = maintenant - debut;
-      if (t > FIN_MS) {
-        graine += 1;
-        arbre = pousser(graine, L / 2, sol, H, L);
-        debut = maintenant; t = 0;
+      const avant = performance.now();
+      if (sortie !== null) {
+        dessiner(tCourant, Math.min(1, (maintenant - sortie) / DUREE_SORTIE_MS));
+      } else {
+        tCourant = maintenant - debut;
+        dessiner(tCourant);
       }
-      dessiner(t);
+      coutMoyen = coutMoyen * 0.9 + (performance.now() - avant) * 0.1;
+      if (!intervalle && coutMoyen > 7) intervalle = 33;
+      else if (intervalle && coutMoyen < 3) intervalle = 0;
     };
     anim = requestAnimationFrame(boucle);
 
-    // requestAnimationFrame se met déjà en pause dans un onglet caché ; au
-    // retour, on repart d'un arbre neuf plutôt que d'un saut dans le temps.
-    const visibilite = () => { if (!document.hidden) { debut = performance.now(); } };
+    // Au retour sur l'onglet, on reprend là où l'on en était.
+    const visibilite = () => { if (!document.hidden) debut = performance.now() - tCourant; };
     document.addEventListener('visibilitychange', visibilite);
-    const observateur = new ResizeObserver(() => { dimensionner(); arbre = pousser(graine, L / 2, sol, H, L); });
+    const observateur = new ResizeObserver(() => { dimensionner(); prochain = null; arbre = pousserArbre(numero, L / 2, sol, H, L); preparer(); });
     observateur.observe(canvas);
 
     return () => {
@@ -219,4 +314,6 @@ export default function ArbreReveil() {
   }, []);
 
   return <canvas ref={toile} className="y-arbre-reveil" aria-hidden="true" />;
-}
+});
+
+export default ArbreReveil;
