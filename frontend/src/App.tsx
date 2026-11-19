@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ReveilGlobal from './components/yiri/ReveilGlobal';
 import LoginPage from './pages/LoginPage';
 import TodayPage from './pages/TodayPage';
 import ConstructionsPage from './pages/ConstructionsPage';
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ReveilGlobal />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 

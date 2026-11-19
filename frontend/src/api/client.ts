@@ -86,3 +86,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return data as T;
 }
+
+/**
+ * Réveille le serveur dès l'ouverture de l'app (offre gratuite de Render :
+ * mise en veille après 15 min d'inactivité, environ une minute pour
+ * repartir). Pendant que la personne lit ou tape ses identifiants, le
+ * serveur démarre déjà. Ne lève jamais d'erreur.
+ */
+export function reveillerServeur(): void {
+  fetch(`${API_BASE_URL}/health`, { method: 'GET' }).catch(() => { /* sans conséquence */ });
+}

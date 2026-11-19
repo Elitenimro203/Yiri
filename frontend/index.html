@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" style="background:#FFFFFF;color:#111214">
   <head>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -8,12 +8,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yiri</title>
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#161D14" />
+    <meta name="theme-color" content="#FFFFFF" />
     <link rel="icon" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Yiri" />
+    <script>
+      // Avant tout rendu : le fond et la barre d'état prennent la couleur du
+      // thème choisi, pour qu'aucun écran d'une autre couleur n'apparaisse
+      // pendant le chargement. Doit rester aligné sur design/apparence.ts.
+      (function () {
+        var fonds = { blanc: ['#FFFFFF', '#111214'], noir: ['#0B0B0C', '#F2F2F3'], lagune: ['#E5EEEB', '#10302D'],
+          hibiscus: ['#FBEDEE', '#2A1418'], atlantique: ['#F5F2EA', '#0E1F33'], mangue: ['#FFF4E2', '#2B1B0E'],
+          menthe: ['#E9F4EC', '#12291C'], lilas: ['#F1EDF7', '#211A33'] };
+        try {
+          var t = (JSON.parse(localStorage.getItem('yiri.apparence') || 'null') || {}).theme;
+          var c = fonds[t];
+          if (c) {
+            document.documentElement.style.background = c[0];
+            document.documentElement.style.color = c[1];
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', c[0]);
+          }
+        } catch (e) { /* stockage indisponible : blanc par défaut */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

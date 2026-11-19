@@ -176,6 +176,7 @@ export default function TodayPage() {
       <main
         className="page-main yiri"
         data-yiri-theme={apparence.theme}
+        data-yiri-pret={pret ? '1' : '0'}
         style={styles.main}
       >
         <div className="y-page">

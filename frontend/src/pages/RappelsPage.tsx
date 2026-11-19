@@ -100,7 +100,7 @@ export default function RappelsPage() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
-      <main className="page-main yiri" data-yiri-theme={apparence.theme} style={{ flex: 1, width: '100%', padding: 0 }}>
+      <main className="page-main yiri" data-yiri-theme={apparence.theme} data-yiri-pret={chargement ? "0" : "1"} style={{ flex: 1, width: '100%', padding: 0 }}>
         <div className="y-page">
           <header className="y-entete-page">
             <p className="y-overline">Rappels</p>

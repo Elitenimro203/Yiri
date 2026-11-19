@@ -30,8 +30,10 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
+  /* Hérite du fond posé sur <html> selon le thème (index.html, apparence.ts) :
+     plus jamais l'ancien vert Wakati pendant un chargement. */
+  background: transparent;
+  color: inherit;
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
 }
