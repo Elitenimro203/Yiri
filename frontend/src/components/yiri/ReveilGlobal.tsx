@@ -9,7 +9,8 @@ import EcranReveil from './EcranReveil';
 // courte pour avoir été vue (l'écran apparaît après 0,5 s) finit sans transition.
 
 const DEJA_VU_MS = 600;
-const DUREE_SORTIE_MS = 900;
+// Filet de sécurité : la sortie (accéléré + envol) dure normalement < 2 s.
+const SORTIE_MAX_MS = 3000;
 const ATTENTE_PAGE_MAX_MS = 1500;
 const PAGE_PRETE = '[data-yiri-pret="1"]';
 
@@ -47,10 +48,10 @@ export default function ReveilGlobal() {
 
   useEffect(() => {
     if (etat !== 'sortie') return;
-    const id = window.setTimeout(() => setEtat('cache'), DUREE_SORTIE_MS);
+    const id = window.setTimeout(() => setEtat('cache'), SORTIE_MAX_MS);
     return () => window.clearTimeout(id);
   }, [etat]);
 
   if (etat === 'cache') return null;
-  return <EcranReveil key={cle} enSortie={etat === 'sortie'} />;
+  return <EcranReveil key={cle} enSortie={etat === 'sortie'} onFini={() => setEtat('cache')} />;
 }

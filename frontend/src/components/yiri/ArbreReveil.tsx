@@ -14,12 +14,13 @@ import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, TEMPO, 
 
 type Rgb = [number, number, number];
 
-/** Pilotage de la sortie : l'arbre se dissout et rend la position (écran)
- *  du fruit — ou d'une graine en haut de l'arbre s'il n'y a pas encore de
- *  fruit — pour qu'il rejoigne la page qui apparaît. */
-export interface ArbreReveilHandle { sortir(): { x: number; y: number } }
+/** Pilotage de la sortie : l'arbre achève sa pousse en accéléré (moins d'une
+ *  seconde) jusqu'au fruit mûr, puis se dissout ; la promesse rend alors la
+ *  position (écran) du fruit, pour qu'il rejoigne la page qui apparaît. */
+export interface ArbreReveilHandle { sortir(): Promise<{ x: number; y: number }> }
 
 const DUREE_SORTIE_MS = 650;
+const ACCELERE_MAX_MS = 900;   // au plus une seconde de plus pour finir l'arbre
 const GRAVITE = 1400;        // px/s²
 const RAYON_FRUIT = 6.5;
 
@@ -45,7 +46,7 @@ function chrono(arbre: Arbre, sol: number, yFruit: number) {
 
 const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, ref) {
   const toile = useRef<HTMLCanvasElement>(null);
-  const pilote = useRef<ArbreReveilHandle>({ sortir: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) });
+  const pilote = useRef<ArbreReveilHandle>({ sortir: async () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) });
   useImperativeHandle(ref, () => ({ sortir: () => pilote.current.sortir() }), []);
 
   useEffect(() => {
@@ -261,15 +262,24 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
       }
     };
 
-    pilote.current.sortir = () => {
-      if (sortie === null) sortie = performance.now();
+    const positionSortie = () => {
       const rect = canvas.getBoundingClientRect();
-      if (calme) ctx.clearRect(0, 0, L, H); // sans animation : l'arbre s'efface d'un coup
       let haut = sol;
       for (const p of poser(arbre, L / 2, sol, () => 0)) haut = Math.min(haut, p.y1);
       const [x, y] = fruitVisible ?? [L / 2, Math.max(16, haut - 10)];
       return { x: rect.left + x, y: rect.top + y };
     };
+
+    // Accéléré de fin : de tDepart à tCible en dureeAcc ms, puis dissolution.
+    let acc: { debut: number; tDepart: number; tCible: number; duree: number; fini: (p: { x: number; y: number }) => void } | null = null;
+    pilote.current.sortir = () => new Promise((resoudre) => {
+      if (calme) { const p = positionSortie(); ctx.clearRect(0, 0, L, H); resoudre(p); return; }
+      const c = cache.c;
+      // Si le fruit tombe déjà ou que l'arbre s'efface, pas d'accéléré : on part tel quel.
+      const tCible = tCourant >= c.chute ? tCourant : Math.max(tCourant, c.mur + 1200 * TEMPO);
+      const duree = Math.min(ACCELERE_MAX_MS, (tCible - tCourant) / 5);
+      acc = { debut: performance.now(), tDepart: tCourant, tCible, duree, fini: resoudre };
+    });
 
     if (calme) {
       dessiner(arbre.finPousse + 200); // arbre complet, immobile
@@ -288,7 +298,12 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
       if (intervalle && maintenant - derniere < intervalle) return;
       derniere = maintenant;
       const avant = performance.now();
-      if (sortie !== null) {
+      if (acc) {
+        const k = acc.duree > 0 ? Math.min(1, (maintenant - acc.debut) / acc.duree) : 1;
+        tCourant = acc.tDepart + (acc.tCible - acc.tDepart) * doux(k);
+        dessiner(tCourant);
+        if (k >= 1) { const fini = acc.fini; acc = null; sortie = maintenant; fini(positionSortie()); }
+      } else if (sortie !== null) {
         dessiner(tCourant, Math.min(1, (maintenant - sortie) / DUREE_SORTIE_MS));
       } else {
         tCourant = maintenant - debut;

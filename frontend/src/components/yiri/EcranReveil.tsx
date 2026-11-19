@@ -22,25 +22,32 @@ function trouverCible(): { x: number; y: number } | null {
   return { x: r.left + 14 + 3.5, y: r.top + r.height / 2 };
 }
 
-export default function EcranReveil({ enSortie = false }: { enSortie?: boolean }) {
+export default function EcranReveil({ enSortie = false, onFini }: { enSortie?: boolean; onFini?: () => void }) {
   const [apparence] = useApparence();
   const secondes = useDureeAttente(true);
   const { principal, loi } = messageAttente(secondes);
   const arbre = useRef<ArbreReveilHandle>(null);
   const fruit = useRef<HTMLSpanElement>(null);
   const [envol, setEnvol] = useState(false);
+  const finir = useRef(onFini);
+  finir.current = onFini;
 
   useEffect(() => {
     if (!enSortie || !arbre.current || !fruit.current) return;
-    const depart = arbre.current.sortir();
-    const f = fruit.current;
-    f.style.transition = 'none';
-    f.style.left = `${depart.x}px`;
-    f.style.top = `${depart.y}px`;
-    setEnvol(true);
-
-    let essais = 0;
-    const id = window.setInterval(() => {
+    let annule = false;
+    let id = 0;
+    let fin = 0;
+    // L'arbre achève sa pousse en accéléré, puis le fruit prend son envol.
+    arbre.current.sortir().then((depart) => {
+      if (annule || !fruit.current) return;
+      const f = fruit.current;
+      f.style.transition = 'none';
+      f.style.left = `${depart.x}px`;
+      f.style.top = `${depart.y}px`;
+      setEnvol(true);
+      fin = window.setTimeout(() => finir.current?.(), 900);
+      let essais = 0;
+      id = window.setInterval(() => {
       const cible = trouverCible();
       essais += 1;
       if (!cible && essais * 50 < ATTENTE_CIBLE_MS) return;
@@ -55,12 +62,13 @@ export default function EcranReveil({ enSortie = false }: { enSortie?: boolean }
         f.style.top = `${depart.y - 40}px`;
         f.classList.add('y-reveil-fruit-efface');
       }
-    }, 50);
-    return () => window.clearInterval(id);
+      }, 50);
+    });
+    return () => { annule = true; window.clearInterval(id); window.clearTimeout(fin); };
   }, [enSortie]);
 
   return (
-    <div className={`yiri y-reveil${enSortie ? ' y-reveil-sortie' : ''}`} data-yiri-theme={apparence.theme} role="status" aria-live="polite" aria-busy={!enSortie}>
+    <div className={`yiri y-reveil${envol ? ' y-reveil-sortie' : ''}`} data-yiri-theme={apparence.theme} role="status" aria-live="polite" aria-busy={!enSortie}>
       <div className="y-reveil-fond" aria-hidden="true" />
       <div className="y-reveil-corps">
         <ArbreReveil ref={arbre} />
