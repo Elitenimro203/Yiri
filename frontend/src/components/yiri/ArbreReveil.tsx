@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, type Arbre, type Pose } from './arbreGeneratif';
+import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, TEMPO, type Arbre, type Pose } from './arbreGeneratif';
 
 // Arbre de l'écran d'attente : une graine, un arbre qui pousse (trait de
 // plume, léger lavis, feuillage de points qui éclot du cœur vers l'extérieur),
@@ -33,12 +33,12 @@ const rgba = (c: Rgb, a: number) => `rgba(${Math.round(c[0])},${Math.round(c[1])
 
 // Chronologie du fruit, relative à la fin de la pousse.
 function chrono(arbre: Arbre, sol: number, yFruit: number) {
-  const mur = arbre.finPousse + 300;
-  const chute = mur + 1500;
+  const mur = arbre.finPousse + 300 * TEMPO;
+  const chute = mur + 1500 * TEMPO;
   const dureeChute = Math.sqrt((2 * Math.max(20, sol - RAYON_FRUIT - yFruit)) / GRAVITE) * 1000;
   const sol1 = chute + dureeChute;
   const rebondFin = sol1 + 320;
-  const roule = rebondFin + 850;
+  const roule = rebondFin + 850 * TEMPO + 150;
   // L'arbre suivant naît dès que le fruit atteint le centre : pas de temps mort.
   return { mur, chute, dureeChute, sol1, rebondFin, roule, fin: roule };
 }
@@ -210,9 +210,9 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
 
       // Graine : tombe du ciel au premier arbre ; ensuite, c'est le fruit
       // tombé qui attend au centre, puis se fond dans le tronc qui naît.
-      const graine = t < 900 ? (graineAuSol ? 1 : doux(t / 450)) : Math.max(0, 1 - (t - 900) / 400);
+      const graine = t < 900 * TEMPO ? (graineAuSol ? 1 : doux(t / (450 * TEMPO))) : Math.max(0, 1 - (t - 900 * TEMPO) / 400);
       if (graine > 0) {
-        const y = graineAuSol ? sol - RAYON_FRUIT : sol - RAYON_FRUIT - (1 - doux(t / 700)) * 60;
+        const y = graineAuSol ? sol - RAYON_FRUIT : sol - RAYON_FRUIT - (1 - doux(t / (700 * TEMPO))) * 60;
         ctx.fillStyle = rgba(accent, 1);
         ctx.beginPath(); ctx.arc(L / 2, y, RAYON_FRUIT * graine, 0, Math.PI * 2); ctx.fill();
       }
@@ -222,7 +222,7 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
       anticiper();
       const [fx0, fy0] = positionAccroche(poses, arbre, arbre.feuilles[arbre.porteFruit]);
       let fx = fx0, fy = fy0, sx = 1, sy = 1, rot = 0;
-      const maturite = doux((t - c.mur) / 1200);
+      const maturite = doux((t - c.mur) / (1200 * TEMPO));
       if (t >= c.chute) {
         const [rx, ry] = positionAccroche(repos, arbre, arbre.feuilles[arbre.porteFruit]);
         fx = rx;
@@ -257,7 +257,7 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
         preparer();
         graineAuSol = true;
         // Le fruit vient de se poser : on saute la chute de la graine.
-        debut = performance.now() - 350;
+        debut = performance.now() - 350 * TEMPO;
       }
     };
 
