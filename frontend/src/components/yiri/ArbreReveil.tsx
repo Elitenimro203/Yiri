@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, type Arbre, type Pose } from './arbreGeneratif';
+import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, TEMPO, type Arbre, type Pose } from './arbreGeneratif';
 
 // Arbre de l'écran d'attente : une graine, un arbre qui pousse (trait de
 // plume, léger lavis, feuillage de points qui éclot du cœur vers l'extérieur),
@@ -14,12 +14,13 @@ import { doux, rebond, poser, positionAccroche, pousserArbre, surCourbe, type Ar
 
 type Rgb = [number, number, number];
 
-/** Pilotage de la sortie : l'arbre se dissout et rend la position (écran)
- *  du fruit — ou d'une graine en haut de l'arbre s'il n'y a pas encore de
- *  fruit — pour qu'il rejoigne la page qui apparaît. */
-export interface ArbreReveilHandle { sortir(): { x: number; y: number } }
+/** Pilotage de la sortie : l'arbre achève sa pousse en accéléré (moins d'une
+ *  seconde) jusqu'au fruit mûr, puis se dissout ; la promesse rend alors la
+ *  position (écran) du fruit, pour qu'il rejoigne la page qui apparaît. */
+export interface ArbreReveilHandle { sortir(): Promise<{ x: number; y: number }> }
 
 const DUREE_SORTIE_MS = 650;
+const ACCELERE_MAX_MS = 900;   // au plus une seconde de plus pour finir l'arbre
 const GRAVITE = 1400;        // px/s²
 const RAYON_FRUIT = 6.5;
 
@@ -33,19 +34,19 @@ const rgba = (c: Rgb, a: number) => `rgba(${Math.round(c[0])},${Math.round(c[1])
 
 // Chronologie du fruit, relative à la fin de la pousse.
 function chrono(arbre: Arbre, sol: number, yFruit: number) {
-  const mur = arbre.finPousse + 300;
-  const chute = mur + 1500;
+  const mur = arbre.finPousse + 300 * TEMPO;
+  const chute = mur + 1500 * TEMPO;
   const dureeChute = Math.sqrt((2 * Math.max(20, sol - RAYON_FRUIT - yFruit)) / GRAVITE) * 1000;
   const sol1 = chute + dureeChute;
   const rebondFin = sol1 + 320;
-  const roule = rebondFin + 850;
+  const roule = rebondFin + 850 * TEMPO + 150;
   // L'arbre suivant naît dès que le fruit atteint le centre : pas de temps mort.
   return { mur, chute, dureeChute, sol1, rebondFin, roule, fin: roule };
 }
 
 const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, ref) {
   const toile = useRef<HTMLCanvasElement>(null);
-  const pilote = useRef<ArbreReveilHandle>({ sortir: () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) });
+  const pilote = useRef<ArbreReveilHandle>({ sortir: async () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) });
   useImperativeHandle(ref, () => ({ sortir: () => pilote.current.sortir() }), []);
 
   useEffect(() => {
@@ -210,9 +211,9 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
 
       // Graine : tombe du ciel au premier arbre ; ensuite, c'est le fruit
       // tombé qui attend au centre, puis se fond dans le tronc qui naît.
-      const graine = t < 900 ? (graineAuSol ? 1 : doux(t / 450)) : Math.max(0, 1 - (t - 900) / 400);
+      const graine = t < 900 * TEMPO ? (graineAuSol ? 1 : doux(t / (450 * TEMPO))) : Math.max(0, 1 - (t - 900 * TEMPO) / 400);
       if (graine > 0) {
-        const y = graineAuSol ? sol - RAYON_FRUIT : sol - RAYON_FRUIT - (1 - doux(t / 700)) * 60;
+        const y = graineAuSol ? sol - RAYON_FRUIT : sol - RAYON_FRUIT - (1 - doux(t / (700 * TEMPO))) * 60;
         ctx.fillStyle = rgba(accent, 1);
         ctx.beginPath(); ctx.arc(L / 2, y, RAYON_FRUIT * graine, 0, Math.PI * 2); ctx.fill();
       }
@@ -222,7 +223,7 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
       anticiper();
       const [fx0, fy0] = positionAccroche(poses, arbre, arbre.feuilles[arbre.porteFruit]);
       let fx = fx0, fy = fy0, sx = 1, sy = 1, rot = 0;
-      const maturite = doux((t - c.mur) / 1200);
+      const maturite = doux((t - c.mur) / (1200 * TEMPO));
       if (t >= c.chute) {
         const [rx, ry] = positionAccroche(repos, arbre, arbre.feuilles[arbre.porteFruit]);
         fx = rx;
@@ -257,19 +258,28 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
         preparer();
         graineAuSol = true;
         // Le fruit vient de se poser : on saute la chute de la graine.
-        debut = performance.now() - 350;
+        debut = performance.now() - 350 * TEMPO;
       }
     };
 
-    pilote.current.sortir = () => {
-      if (sortie === null) sortie = performance.now();
+    const positionSortie = () => {
       const rect = canvas.getBoundingClientRect();
-      if (calme) ctx.clearRect(0, 0, L, H); // sans animation : l'arbre s'efface d'un coup
       let haut = sol;
       for (const p of poser(arbre, L / 2, sol, () => 0)) haut = Math.min(haut, p.y1);
       const [x, y] = fruitVisible ?? [L / 2, Math.max(16, haut - 10)];
       return { x: rect.left + x, y: rect.top + y };
     };
+
+    // Accéléré de fin : de tDepart à tCible en dureeAcc ms, puis dissolution.
+    let acc: { debut: number; tDepart: number; tCible: number; duree: number; fini: (p: { x: number; y: number }) => void } | null = null;
+    pilote.current.sortir = () => new Promise((resoudre) => {
+      if (calme) { const p = positionSortie(); ctx.clearRect(0, 0, L, H); resoudre(p); return; }
+      const c = cache.c;
+      // Si le fruit tombe déjà ou que l'arbre s'efface, pas d'accéléré : on part tel quel.
+      const tCible = tCourant >= c.chute ? tCourant : Math.max(tCourant, c.mur + 1200 * TEMPO);
+      const duree = Math.min(ACCELERE_MAX_MS, (tCible - tCourant) / 5);
+      acc = { debut: performance.now(), tDepart: tCourant, tCible, duree, fini: resoudre };
+    });
 
     if (calme) {
       dessiner(arbre.finPousse + 200); // arbre complet, immobile
@@ -288,7 +298,12 @@ const ArbreReveil = forwardRef<ArbreReveilHandle>(function ArbreReveil(_props, r
       if (intervalle && maintenant - derniere < intervalle) return;
       derniere = maintenant;
       const avant = performance.now();
-      if (sortie !== null) {
+      if (acc) {
+        const k = acc.duree > 0 ? Math.min(1, (maintenant - acc.debut) / acc.duree) : 1;
+        tCourant = acc.tDepart + (acc.tCible - acc.tDepart) * doux(k);
+        dessiner(tCourant);
+        if (k >= 1) { const fini = acc.fini; acc = null; sortie = maintenant; fini(positionSortie()); }
+      } else if (sortie !== null) {
         dessiner(tCourant, Math.min(1, (maintenant - sortie) / DUREE_SORTIE_MS));
       } else {
         tCourant = maintenant - debut;

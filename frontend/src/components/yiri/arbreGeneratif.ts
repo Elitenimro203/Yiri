@@ -35,6 +35,9 @@ export interface Pose { x0: number; y0: number; cx: number; cy: number; x1: numb
 
 export const PROFONDEUR_MAX = 5;
 
+// Rythme de la pousse : 1 = lent et contemplatif ; plus petit = plus vif.
+export const TEMPO = 0.65;
+
 export function generateur(graine: number) {
   let s = (Math.abs(Math.floor(graine)) * 9301 + 49297) % 2147483647 || 1;
   return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
@@ -59,7 +62,7 @@ function construire(graine: number, hauteur: number, port: Port): Arbre {
   const pousser = (parent: number, prof: number, angle: number, long: number, epDebut: number, debut: number) => {
     const id = branches.length;
     const epFin = epDebut * (prof === 0 ? 0.62 : 0.66);
-    const duree = 380 + long * 9;
+    const duree = (380 + long * 9) * TEMPO;
     branches.push({ parent, prof, angle, long, courbure: (r() - 0.5) * 0.45, epDebut, epFin, debut, duree, pression: 0.88 + r() * 0.24 });
     const fin = debut + duree * 0.85;
     if (prof >= PROFONDEUR_MAX || long < 9) {
@@ -77,10 +80,10 @@ function construire(graine: number, hauteur: number, port: Port): Arbre {
     for (let i = 0; i < enfants; i++) {
       const cote = i % 2 ? 1 : -1;
       const ecart = (port.ouverture + r() * 0.34) * cote + (r() - 0.5) * 0.22 + port.penchant;
-      pousser(id, prof + 1, ecart, long * (port.decroissance + r() * 0.12), epFin, fin + r() * 120);
+      pousser(id, prof + 1, ecart, long * (port.decroissance + r() * 0.12), epFin, fin + r() * 120 * TEMPO);
     }
   };
-  pousser(-1, 0, (r() - 0.5) * 0.1, hauteur * port.tronc, 7, 700);
+  pousser(-1, 0, (r() - 0.5) * 0.1, hauteur * port.tronc, 7, 700 * TEMPO);
   return { branches, feuilles, taches, porteFruit: 0, echelle: 1, finPousse: 0 };
 }
 
@@ -186,7 +189,7 @@ export function pousserArbre(graine: number, baseX: number, baseY: number, haute
   });
   arbre.feuilles.forEach((f, i) => {
     const pousseBranche = arbre.branches[f.branche].debut + arbre.branches[f.branche].duree * 0.85;
-    f.debut = Math.max(pousseBranche, finBranches - 900) + (distances[i] / dMax) * 900 + r() * 220;
+    f.debut = Math.max(pousseBranche, finBranches - 900 * TEMPO) + (distances[i] / dMax) * 900 * TEMPO + r() * 220 * TEMPO;
   });
   arbre.finPousse = Math.max(...arbre.feuilles.map((f) => f.debut + 650));
 

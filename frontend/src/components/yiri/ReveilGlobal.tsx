@@ -8,8 +8,12 @@ import EcranReveil from './EcranReveil';
 // le temps de sa sortie pendant que la page apparaît dessous. Une attente trop
 // courte pour avoir été vue (l'écran apparaît après 0,5 s) finit sans transition.
 
-const DEJA_VU_MS = 600;
-const DUREE_SORTIE_MS = 900;
+// L'écran apparaît en fondu après 0,5 s (CSS). Si la réponse arrive avant,
+// on l'annule : il n'a jamais été vu. Sinon il devient opaque tout de suite,
+// pour que la page n'apparaisse jamais au travers pendant son fondu.
+const DEJA_VU_MS = 500;
+// Filet de sécurité : la sortie (accéléré + envol) dure normalement < 2 s.
+const SORTIE_MAX_MS = 3000;
 const ATTENTE_PAGE_MAX_MS = 1500;
 const PAGE_PRETE = '[data-yiri-pret="1"]';
 
@@ -47,10 +51,10 @@ export default function ReveilGlobal() {
 
   useEffect(() => {
     if (etat !== 'sortie') return;
-    const id = window.setTimeout(() => setEtat('cache'), DUREE_SORTIE_MS);
+    const id = window.setTimeout(() => setEtat('cache'), SORTIE_MAX_MS);
     return () => window.clearTimeout(id);
   }, [etat]);
 
   if (etat === 'cache') return null;
-  return <EcranReveil key={cle} enSortie={etat === 'sortie'} />;
+  return <EcranReveil key={cle} enSortie={etat === 'sortie'} plein={etat !== 'visible'} onFini={() => setEtat('cache')} />;
 }

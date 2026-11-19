@@ -26,7 +26,18 @@
           var t = (JSON.parse(localStorage.getItem('yiri.apparence') || 'null') || {}).theme;
           var c = fonds[t];
           if (c) {
-            document.documentElement.style.background = c[0];
+            // App installée : l'écran de démarrage d'Android est blanc. On
+            // passe en douceur du blanc au thème plutôt que d'un coup.
+            var installee = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+            if (installee && c[0] !== '#FFFFFF') {
+              document.documentElement.style.background = '#FFFFFF';
+              requestAnimationFrame(function () {
+                document.documentElement.style.transition = 'background-color 0.4s ease';
+                document.documentElement.style.background = c[0];
+              });
+            } else {
+              document.documentElement.style.background = c[0];
+            }
             document.documentElement.style.color = c[1];
             document.querySelector('meta[name="theme-color"]').setAttribute('content', c[0]);
           }
