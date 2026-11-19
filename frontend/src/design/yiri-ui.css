@@ -261,16 +261,11 @@
 /* ---------- Écran de réveil du serveur ---------- */
 .y-reveil { position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center; background: var(--y-bg); color: var(--y-ink); padding: 28px; animation: y-apparait 0.4s ease 0.5s both; }
 .y-reveil-corps { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 18px; }
-.y-reveil-fil { position: relative; height: 12px; }
-.y-reveil-trait { position: absolute; left: 0; top: 5px; height: 2px; width: 100%; border-radius: 1px; background: var(--y-line); overflow: hidden; }
-.y-reveil-trait::after { content: ""; position: absolute; inset: 0; background: var(--y-accent); transform-origin: left; animation: y-trace 2.6s cubic-bezier(.6,0,.3,1) infinite; }
-.y-reveil-point { position: absolute; top: 1px; left: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--y-accent); animation: y-avance 2.6s cubic-bezier(.6,0,.3,1) infinite; }
 .y-reveil-loi { min-height: 2.8em; margin: 0; color: var(--y-ink-muted); animation: y-apparait 0.8s ease both; }
-@keyframes y-trace { 0% { transform: scaleX(0); opacity: 1; } 80% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
-@keyframes y-avance { 0% { left: 0; } 80% { left: calc(100% - 10px); } 100% { left: calc(100% - 10px); opacity: 0; } }
 @keyframes y-apparait { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .y-reveil, .y-reveil-loi { animation: none; }
-  .y-reveil-trait::after { animation: none; transform: scaleX(0.4); }
-  .y-reveil-point { animation: none; left: calc(40% - 5px); }
 }
+.y-arbre-reveil { display: block; width: 100%; height: min(46vh, 340px); }
+.y-reveil-corps { align-items: center; text-align: center; gap: 10px; }
+.y-reveil-marque { margin-top: 4px; }
