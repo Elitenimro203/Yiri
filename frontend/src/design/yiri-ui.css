@@ -281,3 +281,7 @@
 .y-reveil-corps { align-items: center; text-align: center; gap: 10px; }
 .y-reveil-marque { margin-top: 4px; }
 .yiri.y-reveil { background: transparent; } /* le fond est porté par .y-reveil-fond, qui s'efface à la sortie */
+
+/* La page est prête dessous : l'écran de réveil ne doit plus la laisser
+   transparaître pendant son fondu d'apparition. */
+.y-reveil-plein { animation: none; opacity: 1; }

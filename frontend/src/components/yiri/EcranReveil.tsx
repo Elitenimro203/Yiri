@@ -22,7 +22,7 @@ function trouverCible(): { x: number; y: number } | null {
   return { x: r.left + 14 + 3.5, y: r.top + r.height / 2 };
 }
 
-export default function EcranReveil({ enSortie = false, onFini }: { enSortie?: boolean; onFini?: () => void }) {
+export default function EcranReveil({ enSortie = false, plein = false, onFini }: { enSortie?: boolean; plein?: boolean; onFini?: () => void }) {
   const [apparence] = useApparence();
   const secondes = useDureeAttente(true);
   const { principal, loi } = messageAttente(secondes);
@@ -68,7 +68,7 @@ export default function EcranReveil({ enSortie = false, onFini }: { enSortie?: b
   }, [enSortie]);
 
   return (
-    <div className={`yiri y-reveil${envol ? ' y-reveil-sortie' : ''}`} data-yiri-theme={apparence.theme} role="status" aria-live="polite" aria-busy={!enSortie}>
+    <div className={`yiri y-reveil${plein ? ' y-reveil-plein' : ''}${envol ? ' y-reveil-sortie' : ''}`} data-yiri-theme={apparence.theme} role="status" aria-live="polite" aria-busy={!enSortie}>
       <div className="y-reveil-fond" aria-hidden="true" />
       <div className="y-reveil-corps">
         <ArbreReveil ref={arbre} />
