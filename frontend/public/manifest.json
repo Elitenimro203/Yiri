@@ -1,15 +1,16 @@
 {
   "name": "Yiri",
   "short_name": "Yiri",
-  "description": "Cultiver, construire, devenir.",
+  "description": "Choisir ce qui mérite ton attention, voir ce qui avance.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#161D14",
-  "theme_color": "#161D14",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "orientation": "portrait",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" }
+    { "src": "/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

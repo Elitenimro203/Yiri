@@ -42,6 +42,23 @@ export function lireApparence(): Apparence {
   }
 }
 
+// Encre (couleur du texte) de chaque thème : le document entier en hérite,
+// y compris ce qui s'affiche avant qu'une page Yiri soit montée.
+const ENCRE: Record<ThemeId, string> = {
+  blanc: '#111214', noir: '#F2F2F3', lagune: '#10302D', hibiscus: '#2A1418',
+  atlantique: '#0E1F33', mangue: '#2B1B0E', menthe: '#12291C', lilas: '#211A33',
+};
+
+/** Fond du document et barre d'état du téléphone, alignés sur le thème. */
+export function appliquerFondDocument(theme: ThemeId): void {
+  const fond = THEMES.find((t) => t.id === theme)?.bg ?? '#FFFFFF';
+  const racine = document.documentElement;
+  racine.style.background = fond;
+  racine.style.color = ENCRE[theme];
+  racine.style.colorScheme = theme === 'noir' ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', fond);
+}
+
 export function useApparence(): [Apparence, (changement: Partial<Apparence>) => void] {
   const [apparence, setApparence] = useState<Apparence>(lireApparence);
 
@@ -51,6 +68,7 @@ export function useApparence(): [Apparence, (changement: Partial<Apparence>) => 
     } catch {
       /* préférence non conservée : sans conséquence */
     }
+    appliquerFondDocument(apparence.theme);
   }, [apparence]);
 
   const changer = useCallback((changement: Partial<Apparence>) => {

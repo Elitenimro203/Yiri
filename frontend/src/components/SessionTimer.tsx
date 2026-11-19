@@ -153,5 +153,5 @@ const styles: Record<string, React.CSSProperties> = {
   typeBtnActive: { borderColor: 'var(--sprout-dim)', color: 'var(--sprout)', background: 'var(--surface-2)' },
   numInput: { width: 40, background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 6, color: 'var(--text)', fontSize: 11.5, padding: '4px 4px', textAlign: 'center' },
   slash: { color: 'var(--text-muted)', fontSize: 11 },
-  startBtn: { background: 'var(--sprout)', color: '#161D14', border: 'none', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+  startBtn: { background: 'var(--sprout)', color: 'var(--y-on-accent, #FFFFFF)', border: 'none', borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' },
 };

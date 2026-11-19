@@ -1,13 +1,14 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import EcranReveil from './yiri/EcranReveil';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { utilisateur, chargement } = useAuth();
 
   if (chargement) {
-    // Évite un flash de la page de login pendant la vérification du token
-    // existant au premier chargement de l'app.
-    return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Chargement…</div>;
+    // Vérification du jeton existant : peut durer jusqu'à une minute si le
+    // serveur se réveille. Écran aux couleurs du thème, jamais un écran vide.
+    return <EcranReveil />;
   }
 
   if (!utilisateur) {

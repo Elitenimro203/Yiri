@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import EcranReveil from '../components/yiri/EcranReveil';
 import { ApiError } from '../api/client';
 import { register } from '../api/auth';
 import { useApparence } from '../design/apparence';
@@ -88,6 +89,9 @@ export default function LoginPage() {
 
   return (
     <main className="yiri y-auth" data-yiri-theme={apparence.theme}>
+      {/* Connexion longue = serveur qui se réveille : l'écran d'attente prend
+          le relais (invisible si la réponse arrive en moins d'une demi-seconde). */}
+      {enCours && <EcranReveil />}
       <div className="y-auth-colonne">
         <p className="y-rail-marque" style={{ padding: 0 }}>Yiri</p>
 
@@ -97,7 +101,7 @@ export default function LoginPage() {
           </h1>
           <p className="y-body y-muted">
             {inscription
-              ? "Il t'aide à choisir ce qui mérite ton attention, à voir ce qui s'est réellement passé, à comprendre ce que cela t'apprend, et à décider de la suite."
+              ? "Tu y notes ce que tu fais et ce que tu remarques. Avec le temps, tu vois ce qui avance, tu comprends ce qui marche pour toi, et tu décides de la suite."
               : 'Connecte-toi pour retrouver ce qui mérite ton attention.'}
           </p>
         </div>
